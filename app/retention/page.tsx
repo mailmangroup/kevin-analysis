@@ -121,6 +121,40 @@ export default function RetentionPage() {
     fetchProfile()
   }, [])
 
+  const handleDownload = async () => {
+    if (!profile?.kawo_api_url) return
+    
+    const params = new URLSearchParams({ period })
+    const url = `${profile.kawo_api_url}/phoenix/retention/export?${params.toString()}`
+    
+    try {
+        const token = localStorage.getItem('token') // Assuming simple token storage or from store if available
+        // Better to use fetchWithAuth but we need blob response
+        // Using a direct link approach or fetch with blob
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        
+        if (!response.ok) throw new Error('Download failed')
+        
+        const blob = await response.blob()
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = downloadUrl
+        a.download = `retention_by_type_${new Date().toISOString().slice(0,10)}.csv`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(downloadUrl)
+        document.body.removeChild(a)
+    } catch (e) {
+        console.error('Download error:', e)
+        alert('Failed to download CSV')
+    }
+  }
+
   const getDiff = (start: string, current: string, periodType: string): number => {
     const [y1, p1] = start.split('-').map((val) => {
         // Handle "W" prefix for weeks like "2024-W01" -> "2024-01" logic or strip W
@@ -190,7 +224,6 @@ export default function RetentionPage() {
   // Process data for display (memoized)
   const data = useMemo(() => {
       const cohortsMap: { [key: string]: ProcessedCohort } = {}
-      let maxIdx = 0
       
       rawData.forEach(record => {
         if (!cohortsMap[record.cohort]) {
@@ -205,20 +238,28 @@ export default function RetentionPage() {
           cohortsMap[record.cohort].total_users = record.users
         }
         
-        const diff = getDiff(record.cohort, record.activity_period, period)
-        if (diff > maxIdx) maxIdx = diff
-        
         cohortsMap[record.cohort].periods[record.activity_period] = record.users
       })
       
       return Object.values(cohortsMap).sort((a, b) => b.cohort.localeCompare(a.cohort))
-  }, [rawData, period])
+  }, [rawData])
 
   // Update maxPeriods separately to avoid side-effect warnings
   useEffect(() => {
+     if (rawData.length === 0) return
+
+     // Find the latest activity period across ALL data
+     // This ensures that even if a specific cohort stopped having activity,
+     // we still show columns up to the current date (represented by latest activity)
+     let globalLatestPeriod = ''
+     rawData.forEach(r => {
+        if (r.activity_period > globalLatestPeriod) globalLatestPeriod = r.activity_period
+     })
+
      let maxIdx = 0
      rawData.forEach(record => {
-        const diff = getDiff(record.cohort, record.activity_period, period)
+        // Calculate diff between cohort and the GLOBAL latest period
+        const diff = getDiff(record.cohort, globalLatestPeriod, period)
         if (diff > maxIdx) maxIdx = diff
      })
      setMaxPeriods(maxIdx)
@@ -349,6 +390,12 @@ export default function RetentionPage() {
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
             Retention Analysis
           </h2>
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Download CSV
+          </button>
         </div>
 
         {/* Filters */}

@@ -144,6 +144,7 @@ export default function QuestionsPage() {
     // Default to yesterday
     return format(subDays(new Date(), 1), 'yyyy-MM-dd')
   })
+  const [subCategory, setSubCategory] = useState('all')
 
   useEffect(() => {
     fetchProfile()
@@ -174,6 +175,7 @@ export default function QuestionsPage() {
   const params = new URLSearchParams({ limit: '50' })
   if (startDate) params.append('start_date', startDate)
   if (endDate) params.append('end_date', endDate)
+  if (subCategory && subCategory !== 'all') params.append('sub_category', subCategory)
   const queryString = params.toString()
 
   // Use SWR for data fetching
@@ -241,7 +243,21 @@ export default function QuestionsPage() {
           <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Daily Trend */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Query Volume Trend</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Query Volume Trend</h3>
+                <select
+                  value={subCategory}
+                  onChange={(e) => setSubCategory(e.target.value)}
+                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md p-1 border"
+                >
+                  <option value="all">All Sub-categories</option>
+                  {stats.generation_types.map((type) => (
+                    <option key={type.sub_category || type.generation_type} value={type.sub_category || type.generation_type}>
+                      {type.sub_category || type.generation_type}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="h-64">
                 <Bar
                   data={{

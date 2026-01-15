@@ -3,7 +3,36 @@
 import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { DateRangePicker } from '@/components/DateRangePicker'
+import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
+import { useUserStore } from '@/lib/store/user-store'
+import { subDays, format } from 'date-fns'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+)
 
 interface Question {
   span_id: string
@@ -14,49 +43,148 @@ interface Question {
   answer: string
   generation_type: string
   token_count_total: number
+  tool_calls?: { name: string; args: any }[]
+}
+
+interface BrandGroup {
+  brand_id: string
+  brand_name: string
+  count: number
+  questions: Question[]
+}
+
+interface Stats {
+  daily_counts: { date_beijing: string; count: number }[]
+  top_brands: { brand_id: string; brand_name?: string; count: number }[]
+  top_users: { user_email: string; count: number }[]
+  generation_types: { generation_type: string; sub_category?: string; count: number; percentage: number }[]
+  grouped_questions?: BrandGroup[]
+}
+
+const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
+
+function BrandQuestionGroup({ group }: { group: BrandGroup }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="border-b border-gray-200 last:border-b-0">
+      <div 
+        className="bg-gray-50 px-6 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center">
+          {isOpen ? <ChevronDown className="h-4 w-4 mr-2 text-gray-500" /> : <ChevronRight className="h-4 w-4 mr-2 text-gray-500" />}
+          <span className="font-medium text-gray-900">{group.brand_name}</span>
+          <span className="ml-2 text-xs text-gray-500">({group.brand_id})</span>
+        </div>
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {group.count} questions
+        </span>
+      </div>
+      
+      {isOpen && (
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-white">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Time</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question & Answer</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Tools</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {group.questions.map((q) => (
+              <tr key={q.span_id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
+                  {new Date(q.start_time).toLocaleString('zh-CN')}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900 align-top">
+                  <div className="mb-2 max-h-32 overflow-y-auto">
+                    <span className="font-medium text-blue-600">Q: </span>
+                    {q.question}
+                  </div>
+                  <div className="text-gray-600 bg-gray-50 p-3 rounded text-xs whitespace-pre-wrap max-h-48 overflow-y-auto">
+                    <span className="font-medium text-green-600">A: </span>
+                    {q.answer || '(No answer)'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500 align-top">
+                  {q.tool_calls && q.tool_calls.length > 0 ? (
+                    <div className="space-y-1">
+                      {q.tool_calls.map((tool, idx) => (
+                        <div key={idx} className="bg-gray-100 px-2 py-1 rounded text-xs">
+                          <div className="font-medium">{tool.name}</div>
+                          {tool.args && (
+                            <div className="text-gray-400 truncate max-w-[150px]">
+                              {JSON.stringify(tool.args)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic">None</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
 }
 
 export default function QuestionsPage() {
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [loading, setLoading] = useState(true)
-  const [brandId, setBrandId] = useState('')
-  const [genType, setGenType] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
-
-  const fetchQuestions = async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams({ limit: '50' })
-      if (brandId) params.append('brand_id', brandId)
-      if (genType) params.append('generation_type', genType)
-      // Note: Backend currently supports limit/offset/brand/type. 
-      // Date filtering would ideally be on backend, but for now we filter client side or just show recent.
-      // If backend adds date support to /questions, we can pass it.
-      
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/phoenix/questions?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setQuestions(data)
-      }
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { profile, fetchProfile } = useUserStore()
+  const [startDate, setStartDate] = useState(() => {
+    // Default to yesterday
+    return format(subDays(new Date(), 1), 'yyyy-MM-dd')
+  })
+  const [endDate, setEndDate] = useState(() => {
+    // Default to yesterday
+    return format(subDays(new Date(), 1), 'yyyy-MM-dd')
+  })
 
   useEffect(() => {
-    fetchQuestions()
-  }, [brandId, genType])
+    fetchProfile()
+  }, [])
 
-  const openDetails = async (spanId: string) => {
-    // We can fetch details or just use the data we have if it's complete.
-    // The list endpoint returns full objects for now, so we can just find it.
-    const q = questions.find(q => q.span_id === spanId)
-    if (q) setSelectedQuestion(q)
+  const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value
+    const today = new Date()
+    let start = today
+    let end = today
+    
+    if (val === 'yesterday') {
+        start = subDays(today, 1)
+        end = subDays(today, 1)
+    } else if (val === 'last7') {
+        start = subDays(today, 7)
+        end = today
+    } else if (val === 'last30') {
+        start = subDays(today, 30)
+        end = today
+    }
+    
+    setStartDate(format(start, 'yyyy-MM-dd'))
+    setEndDate(format(end, 'yyyy-MM-dd'))
   }
+
+  // Build query string
+  const params = new URLSearchParams({ limit: '50' })
+  if (startDate) params.append('start_date', startDate)
+  if (endDate) params.append('end_date', endDate)
+  const queryString = params.toString()
+
+  // Use SWR for data fetching
+  const apiUrl = profile?.kawo_api_url
+  const { data: stats, error: statsError } = useSWR<Stats>(
+    apiUrl ? `${apiUrl}/phoenix/questions/stats?${queryString}` : null,
+    fetcher
+  )
+
+  const loading = !stats && !statsError
+  const statsLoading = !stats && !statsError
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,31 +201,21 @@ export default function QuestionsPage() {
 
         {/* Filters */}
         <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Brand ID</label>
-              <input
-                type="text"
-                value={brandId}
-                onChange={(e) => setBrandId(e.target.value)}
-                placeholder="Filter by Brand ID"
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-              />
+               <label className="block text-sm font-medium text-gray-700 mb-1">Quick Select</label>
+               <select 
+                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                 onChange={handleRangeChange}
+                 defaultValue="yesterday"
+               >
+                 <option value="yesterday">Yesterday</option>
+                 <option value="last7">Last 7 Days</option>
+                 <option value="last30">Last 30 Days</option>
+               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Generation Type</label>
-              <input
-                type="text"
-                value={genType}
-                onChange={(e) => setGenType(e.target.value)}
-                placeholder="Filter by Type"
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
-              />
-            </div>
-            <div>
-               {/* Placeholder for Date Range if backend supported it fully, 
-                   for now visual only or we can implement client-side filter if needed */}
-               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range (Visual)</label>
+            <div className="md:col-span-2">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
                <DateRangePicker 
                  startDate={startDate} 
                  endDate={endDate} 
@@ -108,134 +226,132 @@ export default function QuestionsPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User / Brand
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Question
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tokens
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {questions.map((q) => (
-                    <tr key={q.span_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(q.start_time).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="font-medium">{q.user_email || 'N/A'}</div>
-                        <div className="text-gray-500 text-xs">{q.brand_id || 'No Brand'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {q.generation_type || 'Unknown'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                        {q.question || 'No question text'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {q.token_count_total}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => openDetails(q.span_id)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Detail Modal */}
-      {selectedQuestion && (
-        <div className="fixed inset-0 z-10 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setSelectedQuestion(null)}></div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      Question Details
-                    </h3>
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500">Question</h4>
-                        <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">{selectedQuestion.question}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500">Answer</h4>
-                        <div className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded whitespace-pre-wrap max-h-96 overflow-y-auto">
-                          {selectedQuestion.answer}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">Metadata</h4>
-                          <ul className="mt-1 text-sm text-gray-500">
-                            <li>User: {selectedQuestion.user_email}</li>
-                            <li>Brand: {selectedQuestion.brand_id}</li>
-                            <li>Type: {selectedQuestion.generation_type}</li>
-                            <li>Time: {new Date(selectedQuestion.start_time).toLocaleString()}</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">Metrics</h4>
-                          <ul className="mt-1 text-sm text-gray-500">
-                            <li>Total Tokens: {selectedQuestion.token_count_total}</li>
-                            <li>Span ID: {selectedQuestion.span_id}</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Stats Section */}
+        {statsError && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">Failed to load statistics. The API returned an error.</p>
+          </div>
+        )}
+        {statsLoading && (
+          <div className="mb-8 bg-white shadow rounded-lg p-8 text-center text-gray-500">
+            Loading statistics...
+          </div>
+        )}
+        {stats && stats.daily_counts && stats.generation_types && stats.top_brands && stats.top_users && (
+          <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Daily Trend */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Query Volume Trend</h3>
+              <div className="h-64">
+                <Bar
+                  data={{
+                    labels: stats.daily_counts.map(d => d.date_beijing),
+                    datasets: [{
+                      label: 'Queries',
+                      data: stats.daily_counts.map(d => d.count),
+                      backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                      borderColor: 'rgb(59, 130, 246)',
+                      borderWidth: 1
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: { beginAtZero: true }
+                    }
+                  }}
+                />
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setSelectedQuestion(null)}
-                >
-                  Close
-                </button>
+            </div>
+
+            {/* Generation Types */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Sub-category Distribution</h3>
+              <div className="h-64 flex justify-center">
+                <Doughnut
+                  data={{
+                    labels: stats.generation_types.map((d) => {
+                      const label = d.sub_category || d.generation_type
+                      return `${label} (${d.percentage}%)`
+                    }),
+                    datasets: [{
+                      data: stats.generation_types.map(d => d.count),
+                      backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                      ],
+                      borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                      ],
+                      borderWidth: 1
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Top Brands */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Top Brands</h3>
+              <div className="overflow-y-auto max-h-64">
+                <ul className="divide-y divide-gray-200">
+                  {stats.top_brands.map((b) => (
+                    <li key={b.brand_id} className="py-3 flex justify-between">
+                      <span className="text-sm font-medium text-gray-900">{b.brand_name || b.brand_id || 'Unknown'}</span>
+                      <span className="text-sm text-gray-500">{b.count} questions</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Top Users */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Top Users</h3>
+              <div className="overflow-y-auto max-h-64">
+                <ul className="divide-y divide-gray-200">
+                  {stats.top_users.map((u) => (
+                    <li key={u.user_email} className="py-3 flex justify-between">
+                      <span className="text-sm font-medium text-gray-900">{u.user_email}</span>
+                      <span className="text-sm text-gray-500">{u.count} questions</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
+        )}
+
+        {/* Grouped Questions Table */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-8">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Questions by Brand</h3>
+          </div>
+          {statsLoading ? (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          ) : stats?.grouped_questions && stats.grouped_questions.length > 0 ? (
+            <div className="overflow-x-auto">
+              {stats.grouped_questions.map((group) => (
+                <BrandQuestionGroup key={group.brand_id} group={group} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">No questions found for the selected period.</div>
+          )}
         </div>
-      )}
+      </main>
     </div>
   )
 }

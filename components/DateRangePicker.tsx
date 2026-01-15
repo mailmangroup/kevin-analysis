@@ -26,7 +26,7 @@ export function DateRangePicker({
           id="start-date"
           value={startDate}
           onChange={(e) => onStartDateChange(e.target.value)}
-          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900"
         />
       </div>
       <div className="flex items-center space-x-2">
@@ -38,7 +38,7 @@ export function DateRangePicker({
           id="end-date"
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
-          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900"
         />
       </div>
     </div>

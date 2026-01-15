@@ -406,7 +406,7 @@ export default function RetentionPage() {
               <select
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
               >
                 <option value="week">Weekly</option>
                 <option value="month">Monthly</option>
@@ -417,7 +417,7 @@ export default function RetentionPage() {
               <select
                 value={genType}
                 onChange={(e) => setGenType(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
               >
                 <option value="">All Features</option>
                 <option value="question_answering">Question Answering</option>

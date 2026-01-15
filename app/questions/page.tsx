@@ -136,6 +136,7 @@ function BrandQuestionGroup({ group }: { group: BrandGroup }) {
 
 export default function QuestionsPage() {
   const { profile, fetchProfile } = useUserStore()
+  const [quickSelect, setQuickSelect] = useState('yesterday')
   const [startDate, setStartDate] = useState(() => {
     // Default to yesterday
     return format(subDays(new Date(), 1), 'yyyy-MM-dd')
@@ -152,6 +153,10 @@ export default function QuestionsPage() {
 
   const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value
+    setQuickSelect(val)
+    
+    if (val === 'custom') return
+
     const today = new Date()
     let start = today
     let end = today
@@ -169,6 +174,12 @@ export default function QuestionsPage() {
     
     setStartDate(format(start, 'yyyy-MM-dd'))
     setEndDate(format(end, 'yyyy-MM-dd'))
+  }
+
+  const handleDateChange = (type: 'start' | 'end', date: string) => {
+    if (type === 'start') setStartDate(date)
+    else setEndDate(date)
+    setQuickSelect('custom')
   }
 
   // Build query string
@@ -207,13 +218,14 @@ export default function QuestionsPage() {
             <div>
                <label className="block text-sm font-medium text-gray-700 mb-1">Quick Select</label>
                <select 
-                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
                  onChange={handleRangeChange}
-                 defaultValue="yesterday"
+                 value={quickSelect}
                >
                  <option value="yesterday">Yesterday</option>
                  <option value="last7">Last 7 Days</option>
                  <option value="last30">Last 30 Days</option>
+                 <option value="custom">Custom Range</option>
                </select>
             </div>
             <div className="md:col-span-2">
@@ -221,8 +233,8 @@ export default function QuestionsPage() {
                <DateRangePicker 
                  startDate={startDate} 
                  endDate={endDate} 
-                 onStartDateChange={setStartDate} 
-                 onEndDateChange={setEndDate} 
+                 onStartDateChange={(date) => handleDateChange('start', date)} 
+                 onEndDateChange={(date) => handleDateChange('end', date)} 
                />
             </div>
           </div>
@@ -248,7 +260,7 @@ export default function QuestionsPage() {
                 <select
                   value={subCategory}
                   onChange={(e) => setSubCategory(e.target.value)}
-                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md p-1 border"
+                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md p-1 border text-gray-900"
                 >
                   <option value="all">All Sub-categories</option>
                   {stats.generation_types.map((type) => (

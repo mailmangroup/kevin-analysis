@@ -122,7 +122,7 @@ export default function CostPage() {
             <select
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>

@@ -19,11 +19,6 @@ export default function Home() {
   const apiUrl = profile?.kawo_api_url
 
   // Fetch all dashboard data using SWR
-  const { data: summary = {} } = useSWR(
-    apiUrl ? `${apiUrl}/phoenix/overview/summary` : null,
-    fetcher
-  )
-
   const { data: metrics = [] } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=30` : null,
     fetcher

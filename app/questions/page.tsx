@@ -45,6 +45,8 @@ interface Question {
   sub_category?: string
   token_count_total: number
   tool_calls?: { name: string; args: any }[]
+  is_video_followup?: boolean
+  video_analysis_span_id?: string
 }
 
 interface BrandGroup {
@@ -56,6 +58,7 @@ interface BrandGroup {
 
 interface Stats {
   daily_counts: { date_beijing: string; count: number }[]
+  daily_counts_by_subcategory?: { date_beijing: string; sub_category: string; count: number }[]
   top_brands: { brand_id: string; brand_name?: string; count: number }[]
   top_users: { user_email: string; count: number }[]
   sub_categories: { sub_category: string; count: number; percentage: number }[]
@@ -64,7 +67,113 @@ interface Stats {
 
 const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
 
-function BrandQuestionGroup({ group }: { group: BrandGroup }) {
+// Centralized color mapping for sub-categories
+const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: string }> = {
+  'video_analysis': {
+    bg: 'rgba(255, 99, 132, 0.5)',
+    border: 'rgba(255, 99, 132, 1)',
+    solid: 'rgb(255, 99, 132)'
+  },
+  'chat': {
+    bg: 'rgba(54, 162, 235, 0.5)',
+    border: 'rgba(54, 162, 235, 1)',
+    solid: 'rgb(54, 162, 235)'
+  },
+  'report': {
+    bg: 'rgba(255, 206, 86, 0.5)',
+    border: 'rgba(255, 206, 86, 1)',
+    solid: 'rgb(255, 206, 86)'
+  },
+  'content': {
+    bg: 'rgba(75, 192, 192, 0.5)',
+    border: 'rgba(75, 192, 192, 1)',
+    solid: 'rgb(75, 192, 192)'
+  },
+  'other': {
+    bg: 'rgba(153, 102, 255, 0.5)',
+    border: 'rgba(153, 102, 255, 1)',
+    solid: 'rgb(153, 102, 255)'
+  },
+}
+
+// Helper function to get color for a sub-category
+function getSubCategoryColor(subCategory: string): { bg: string; border: string; solid: string } {
+  return SUB_CATEGORY_COLORS[subCategory] || SUB_CATEGORY_COLORS['other']
+}
+
+function FollowUpQuestions({ spanId, apiUrl }: { spanId: string; apiUrl: string }) {
+  const [showFollowUps, setShowFollowUps] = useState(false)
+  const { data: followUps, error } = useSWR<Question[]>(
+    showFollowUps ? `${apiUrl}/phoenix/questions/${spanId}/followups` : null,
+    fetcher
+  )
+
+  if (!showFollowUps) {
+    return (
+      <button
+        onClick={() => setShowFollowUps(true)}
+        className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+      >
+        Show Follow-up Questions
+      </button>
+    )
+  }
+
+  if (error) {
+    return <div className="mt-2 text-xs text-red-600">Failed to load follow-ups</div>
+  }
+
+  if (!followUps) {
+    return <div className="mt-2 text-xs text-gray-500">Loading follow-ups...</div>
+  }
+
+  if (followUps.length === 0) {
+    return (
+      <div className="mt-2">
+        <button
+          onClick={() => setShowFollowUps(false)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline"
+        >
+          Hide Follow-ups
+        </button>
+        <div className="text-xs text-gray-500 mt-1">No follow-up questions found</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-3 border-l-2 border-blue-300 pl-3">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs font-medium text-blue-700">Follow-up Questions ({followUps.length})</span>
+        <button
+          onClick={() => setShowFollowUps(false)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline"
+        >
+          Hide
+        </button>
+      </div>
+      <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+        {followUps.map((followUp) => (
+          <div key={followUp.span_id} className="bg-blue-50 p-2 rounded text-xs">
+            <div className="text-gray-500 mb-1">
+              {new Date(followUp.start_time).toLocaleString('zh-CN')}
+            </div>
+            <div className="mb-1">
+              <span className="font-medium text-blue-600">Q: </span>
+              {followUp.question}
+            </div>
+            <div className="text-gray-600 bg-white p-2 rounded whitespace-pre-wrap max-h-32 overflow-y-auto">
+              <span className="font-medium text-green-600">A: </span>
+              {followUp.answer || '(No answer)'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: string }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -88,6 +197,7 @@ function BrandQuestionGroup({ group }: { group: BrandGroup }) {
           <thead className="bg-white">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Time</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Sub-category</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question & Answer</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Tools</th>
             </tr>
@@ -98,6 +208,18 @@ function BrandQuestionGroup({ group }: { group: BrandGroup }) {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
                   {new Date(q.start_time).toLocaleString('zh-CN')}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm align-top">
+                  <span
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: getSubCategoryColor(q.sub_category || 'chat').bg,
+                      color: getSubCategoryColor(q.sub_category || 'chat').solid,
+                      border: `1px solid ${getSubCategoryColor(q.sub_category || 'chat').border}`
+                    }}
+                  >
+                    {q.sub_category || 'chat'}
+                  </span>
+                </td>
                 <td className="px-6 py-4 text-sm text-gray-900 align-top">
                   <div className="mb-2 max-h-32 overflow-y-auto">
                     <span className="font-medium text-blue-600">Q: </span>
@@ -107,6 +229,9 @@ function BrandQuestionGroup({ group }: { group: BrandGroup }) {
                     <span className="font-medium text-green-600">A: </span>
                     {q.answer || '(No answer)'}
                   </div>
+                  {q.sub_category === 'video_analysis' && (
+                    <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
+                  )}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 align-top">
                   {q.tool_calls && q.tool_calls.length > 0 ? (
@@ -206,7 +331,6 @@ export default function QuestionsPage() {
     fetcher
   )
 
-  const loading = !stats && !statsError
   const statsLoading = !stats && !statsError
 
   return (
@@ -230,7 +354,7 @@ export default function QuestionsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
                <label className="block text-sm font-medium text-gray-700 mb-1">Quick Select</label>
-               <select 
+               <select
                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
                  onChange={handleRangeChange}
                  value={quickSelect}
@@ -243,12 +367,27 @@ export default function QuestionsPage() {
             </div>
             <div className="md:col-span-2">
                <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-               <DateRangePicker 
-                 startDate={startDate} 
-                 endDate={endDate} 
-                 onStartDateChange={(date) => handleDateChange('start', date)} 
-                 onEndDateChange={(date) => handleDateChange('end', date)} 
+               <DateRangePicker
+                 startDate={startDate}
+                 endDate={endDate}
+                 onStartDateChange={(date) => handleDateChange('start', date)}
+                 onEndDateChange={(date) => handleDateChange('end', date)}
                />
+            </div>
+            <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+               <select
+                 value={subCategory}
+                 onChange={(e) => setSubCategory(e.target.value)}
+                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
+               >
+                 <option value="all">All Sub-categories</option>
+                 {stats?.sub_categories?.map((item) => (
+                   <option key={item.sub_category} value={item.sub_category}>
+                     {item.sub_category}
+                   </option>
+                 ))}
+               </select>
             </div>
           </div>
         </div>
@@ -268,38 +407,57 @@ export default function QuestionsPage() {
           <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Daily Trend */}
             <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Query Volume Trend</h3>
-                <select
-                  value={subCategory}
-                  onChange={(e) => setSubCategory(e.target.value)}
-                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md p-1 border text-gray-900"
-                >
-                  <option value="all">All Sub-categories</option>
-                  {stats.sub_categories.map((item) => (
-                    <option key={item.sub_category} value={item.sub_category}>
-                      {item.sub_category}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Query Volume Trend</h3>
               <div className="h-64">
                 <Bar
-                  data={{
-                    labels: stats.daily_counts.map(d => d.date_beijing),
-                    datasets: [{
-                      label: 'Queries',
-                      data: stats.daily_counts.map(d => d.count),
-                      backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                      borderColor: 'rgb(59, 130, 246)',
-                      borderWidth: 1
-                    }]
-                  }}
+                  data={(() => {
+                    // If filtering by specific sub-category, show simple bar chart
+                    if (subCategory !== 'all') {
+                      return {
+                        labels: stats.daily_counts.map(d => d.date_beijing),
+                        datasets: [{
+                          label: 'Queries',
+                          data: stats.daily_counts.map(d => d.count),
+                          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                          borderColor: 'rgb(59, 130, 246)',
+                          borderWidth: 1
+                        }]
+                      }
+                    }
+
+                    // Otherwise, show stacked bar chart by sub-category
+                    const dailyData = stats.daily_counts_by_subcategory || []
+
+                    // Get unique dates and sub-categories
+                    const dates = Array.from(new Set(dailyData.map(d => d.date_beijing))).sort()
+                    const subCategories = Array.from(new Set(dailyData.map(d => d.sub_category)))
+
+                    // Create datasets for each sub-category
+                    const datasets = subCategories.map((subCat) => {
+                      const colors = getSubCategoryColor(subCat)
+                      return {
+                        label: subCat,
+                        data: dates.map(date => {
+                          const item = dailyData.find(d => d.date_beijing === date && d.sub_category === subCat)
+                          return item ? item.count : 0
+                        }),
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        borderWidth: 1
+                      }
+                    })
+
+                    return {
+                      labels: dates,
+                      datasets
+                    }
+                  })()}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                      y: { beginAtZero: true }
+                      x: { stacked: subCategory === 'all' },
+                      y: { stacked: subCategory === 'all', beginAtZero: true }
                     }
                   }}
                 />
@@ -317,20 +475,8 @@ export default function QuestionsPage() {
                     }),
                     datasets: [{
                       data: stats.sub_categories.map(item => item.count),
-                      backgroundColor: [
-                        'rgba(255, 99, 132, 0.5)',
-                        'rgba(54, 162, 235, 0.5)',
-                        'rgba(255, 206, 86, 0.5)',
-                        'rgba(75, 192, 192, 0.5)',
-                        'rgba(153, 102, 255, 0.5)',
-                      ],
-                      borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                      ],
+                      backgroundColor: stats.sub_categories.map(item => getSubCategoryColor(item.sub_category).bg),
+                      borderColor: stats.sub_categories.map(item => getSubCategoryColor(item.sub_category).border),
                       borderWidth: 1
                     }]
                   }}
@@ -384,7 +530,7 @@ export default function QuestionsPage() {
           ) : stats?.grouped_questions && stats.grouped_questions.length > 0 ? (
             <div className="overflow-x-auto">
               {stats.grouped_questions.map((group) => (
-                <BrandQuestionGroup key={group.brand_id} group={group} />
+                <BrandQuestionGroup key={group.brand_id} group={group} apiUrl={apiUrl || ''} />
               ))}
             </div>
           ) : (

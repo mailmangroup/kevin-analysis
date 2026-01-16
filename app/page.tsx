@@ -47,7 +47,7 @@ export default function Home() {
               Dashboard Overview
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Last updated: {new Date().toLocaleDateString()}
+              Last updated: {new Date().toLocaleDateString()} • All dates shown in Beijing Time (UTC+8)
             </p>
           </div>
         </div>

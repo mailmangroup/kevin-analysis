@@ -115,9 +115,14 @@ export default function CostPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="md:flex md:items-center md:justify-between mb-8">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Cost Analysis
-          </h2>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              Cost Analysis
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Daily and monthly cost breakdown • All dates in Beijing Time (UTC+8)
+            </p>
+          </div>
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <select
               value={days}

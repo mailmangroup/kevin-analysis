@@ -42,6 +42,7 @@ interface Question {
   question: string
   answer: string
   generation_type: string
+  sub_category?: string
   token_count_total: number
   tool_calls?: { name: string; args: any }[]
 }
@@ -57,7 +58,7 @@ interface Stats {
   daily_counts: { date_beijing: string; count: number }[]
   top_brands: { brand_id: string; brand_name?: string; count: number }[]
   top_users: { user_email: string; count: number }[]
-  generation_types: { generation_type: string; sub_category?: string; count: number; percentage: number }[]
+  sub_categories: { sub_category: string; count: number; percentage: number }[]
   grouped_questions?: BrandGroup[]
 }
 
@@ -134,6 +135,15 @@ function BrandQuestionGroup({ group }: { group: BrandGroup }) {
   )
 }
 
+/**
+ * Questions Analysis Page
+ *
+ * This page shows analysis for ONLY the "question_answering" generation type.
+ * It breaks down questions by sub_category (chat, video_analysis, report, etc.)
+ *
+ * Note: This is different from the Overview page which shows all generation_types
+ * (question_answering, report_generation, content_generation, etc.)
+ */
 export default function QuestionsPage() {
   const { profile, fetchProfile } = useUserStore()
   const [quickSelect, setQuickSelect] = useState('yesterday')
@@ -209,6 +219,9 @@ export default function QuestionsPage() {
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
               Questions Analysis
             </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Analyzing question_answering queries broken down by sub-category • All dates in Beijing Time (UTC+8)
+            </p>
           </div>
         </div>
 
@@ -251,7 +264,7 @@ export default function QuestionsPage() {
             Loading statistics...
           </div>
         )}
-        {stats && stats.daily_counts && stats.generation_types && stats.top_brands && stats.top_users && (
+        {stats && stats.daily_counts && stats.sub_categories && stats.top_brands && stats.top_users && (
           <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Daily Trend */}
             <div className="bg-white shadow rounded-lg p-6">
@@ -263,9 +276,9 @@ export default function QuestionsPage() {
                   className="shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md p-1 border text-gray-900"
                 >
                   <option value="all">All Sub-categories</option>
-                  {stats.generation_types.map((type) => (
-                    <option key={type.sub_category || type.generation_type} value={type.sub_category || type.generation_type}>
-                      {type.sub_category || type.generation_type}
+                  {stats.sub_categories.map((item) => (
+                    <option key={item.sub_category} value={item.sub_category}>
+                      {item.sub_category}
                     </option>
                   ))}
                 </select>
@@ -293,18 +306,17 @@ export default function QuestionsPage() {
               </div>
             </div>
 
-            {/* Generation Types */}
+            {/* Sub-category Distribution */}
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Sub-category Distribution</h3>
               <div className="h-64 flex justify-center">
                 <Doughnut
                   data={{
-                    labels: stats.generation_types.map((d) => {
-                      const label = d.sub_category || d.generation_type
-                      return `${label} (${d.percentage}%)`
+                    labels: stats.sub_categories.map((item) => {
+                      return `${item.sub_category} (${item.percentage}%)`
                     }),
                     datasets: [{
-                      data: stats.generation_types.map(d => d.count),
+                      data: stats.sub_categories.map(item => item.count),
                       backgroundColor: [
                         'rgba(255, 99, 132, 0.5)',
                         'rgba(54, 162, 235, 0.5)',

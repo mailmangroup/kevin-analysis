@@ -123,23 +123,18 @@ export default function RetentionPage() {
 
   const handleDownload = async () => {
     if (!profile?.kawo_api_url) return
-    
+
     const params = new URLSearchParams({ period })
     const url = `${profile.kawo_api_url}/phoenix/retention/export?${params.toString()}`
-    
+
     try {
-        const token = localStorage.getItem('token') // Assuming simple token storage or from store if available
-        // Better to use fetchWithAuth but we need blob response
-        // Using a direct link approach or fetch with blob
-        
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        
-        if (!response.ok) throw new Error('Download failed')
-        
+        // Use fetchWithAuth helper which handles token correctly
+        const response = await fetchWithAuth(url)
+
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+        }
+
         const blob = await response.blob()
         const downloadUrl = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -151,7 +146,7 @@ export default function RetentionPage() {
         document.body.removeChild(a)
     } catch (e) {
         console.error('Download error:', e)
-        alert('Failed to download CSV')
+        alert(`Failed to download CSV: ${e instanceof Error ? e.message : 'Unknown error'}`)
     }
   }
 
@@ -387,9 +382,14 @@ export default function RetentionPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Retention Analysis
-          </h2>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              Retention Analysis
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              User cohort retention and lifecycle analysis • All dates in Beijing Time (UTC+8)
+            </p>
+          </div>
           <button
             onClick={handleDownload}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

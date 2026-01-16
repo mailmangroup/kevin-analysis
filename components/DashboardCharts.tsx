@@ -39,107 +39,139 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
   // Sort costs by month ascending
   const sortedCosts = [...costs].sort((a, b) => a.year_month.localeCompare(b.year_month))
 
+  const cardClass = "bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6"
+  const titleClass = "text-lg font-semibold text-slate-900 mb-6"
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { 
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        padding: 12,
+        titleFont: { size: 13 },
+        bodyFont: { size: 12 },
+        cornerRadius: 8,
+        displayColors: false,
+      }
+    },
+    scales: { 
+      y: { 
+        beginAtZero: true, 
+        grid: { color: '#f1f5f9' },
+        ticks: { font: { size: 11 }, color: '#64748b' },
+        border: { display: false }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 11 }, color: '#64748b' },
+        border: { display: false }
+      }
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-6 mb-8">
+    <div className="space-y-6 mb-8">
       {/* 1. Daily Active Users (Last 30 Days) */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Daily Active Users (Last 30 Days)</h3>
-        <div className="h-64">
+      <div className={cardClass}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className={titleClass.replace('mb-6', 'mb-0')}>Daily Active Users</h3>
+          <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Last 30 Days</span>
+        </div>
+        <div className="h-72">
           <Line
             data={{
               labels: sortedMetrics.map(m => m.date_beijing.slice(5)), // MM-DD
               datasets: [{
                 label: 'Active Users',
                 data: sortedMetrics.map(m => m.dau),
-                borderColor: 'rgb(16, 185, 129)', // Green
-                backgroundColor: 'rgba(16, 185, 129, 0.5)',
-                tension: 0.3
+                borderColor: '#0ea5e9', // Primary-500
+                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#0ea5e9',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
               }]
             }}
             options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+              ...chartOptions,
+              scales: {
+                ...chartOptions.scales,
+                y: { ...chartOptions.scales.y, ticks: { precision: 0 } }
+              }
             }}
           />
         </div>
       </div>
 
       {/* 2. Queries by Type per Day (Last 30 Days) - Split into 3 Charts */}
-      
-      {/* 2a. Report Generation */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Report Generation (Last 30 Days)</h3>
-        <div className="h-64">
-          <Bar
-            data={{
-              labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
-              datasets: [
-                {
-                  label: 'Report Generation',
-                  data: sortedMetrics.map(m => m.report_generation_count || 0),
-                  backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } }
-            }}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 2a. Report Generation */}
+        <div className={cardClass}>
+          <h3 className={titleClass}>Report Generation</h3>
+          <div className="h-64">
+            <Bar
+              data={{
+                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                datasets: [
+                  {
+                    label: 'Report Generation',
+                    data: sortedMetrics.map(m => m.report_generation_count || 0),
+                    backgroundColor: '#10b981', // Emerald-500
+                    borderRadius: 4,
+                  }
+                ]
+              }}
+              options={chartOptions}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* 2b. Question Answering */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Question Answering (Last 30 Days)</h3>
-        <div className="h-64">
-          <Bar
-            data={{
-              labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
-              datasets: [
-                {
-                  label: 'Question Answering',
-                  data: sortedMetrics.map(m => m.question_answering_count || 0),
-                  backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } }
-            }}
-          />
+        {/* 2b. Question Answering */}
+        <div className={cardClass}>
+          <h3 className={titleClass}>Question Answering</h3>
+          <div className="h-64">
+            <Bar
+              data={{
+                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                datasets: [
+                  {
+                    label: 'Question Answering',
+                    data: sortedMetrics.map(m => m.question_answering_count || 0),
+                    backgroundColor: '#8b5cf6', // Violet-500
+                    borderRadius: 4,
+                  }
+                ]
+              }}
+              options={chartOptions}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* 2c. Content Generation */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Content Generation (Last 30 Days)</h3>
-        <div className="h-64">
-          <Bar
-            data={{
-              labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
-              datasets: [
-                {
-                  label: 'Content Generation',
-                  data: sortedMetrics.map(m => m.content_generation_count || 0),
-                  backgroundColor: 'rgba(255, 206, 86, 0.7)',
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } }
-            }}
-          />
+        {/* 2c. Content Generation */}
+        <div className={cardClass}>
+          <h3 className={titleClass}>Content Generation</h3>
+          <div className="h-64">
+            <Bar
+              data={{
+                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                datasets: [
+                  {
+                    label: 'Content Generation',
+                    data: sortedMetrics.map(m => m.content_generation_count || 0),
+                    backgroundColor: '#f59e0b', // Amber-500
+                    borderRadius: 4,
+                  }
+                ]
+              }}
+              options={chartOptions}
+            />
+          </div>
         </div>
       </div>
     </div>

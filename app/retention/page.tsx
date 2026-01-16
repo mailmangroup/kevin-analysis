@@ -64,37 +64,48 @@ function UserListModal({ isOpen, onClose, title, users }: { isOpen: boolean; onC
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" onClick={onClose}></div>
+        
+        <div className="relative inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-slate-200">
           <div className="sm:flex sm:items-start">
-            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-              <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                {title}
-              </h3>
-              <div className="mt-4 max-h-96 overflow-y-auto">
+            <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl leading-6 font-bold text-slate-900" id="modal-title">
+                  {title}
+                </h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-500 transition-colors">
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mt-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {users && users.length > 0 ? (
-                  <ul className="divide-y divide-gray-200">
+                  <ul className="divide-y divide-slate-100">
                     {users.map((user, idx) => (
-                      <li key={idx} className="py-3 flex justify-between">
-                         <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900">{user.email}</span>
-                            <span className="text-xs text-gray-500">{user.brands || 'No Brand'}</span>
+                      <li key={idx} className="py-3 flex justify-between items-center hover:bg-slate-50 px-2 rounded-lg transition-colors">
+                         <div className="flex flex-col text-left">
+                            <span className="text-sm font-medium text-slate-900">{user.email}</span>
+                            <span className="text-xs text-slate-500 mt-0.5">{user.brands || 'No Brand'}</span>
                          </div>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-gray-500">No users found for this segment.</p>
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-slate-500">No users found for this segment.</p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+          <div className="mt-6 sm:mt-6">
             <button
               type="button"
-              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+              className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm transition-colors"
               onClick={onClose}
             >
               Close
@@ -119,7 +130,7 @@ export default function RetentionPage() {
 
   useEffect(() => {
     fetchProfile()
-  }, [])
+  }, [fetchProfile])
 
   const handleDownload = async () => {
     if (!profile?.kawo_api_url) return
@@ -307,11 +318,16 @@ export default function RetentionPage() {
   
   const chartOptions = {
       responsive: true,
+      maintainAspectRatio: false,
       scales: {
           x: { stacked: true },
           y: { stacked: true },
       },
       plugins: {
+          legend: {
+              position: 'top' as const,
+              align: 'center' as const,
+          },
           title: {
               display: true,
               text: 'User Lifecycle (Weekly)',
@@ -370,7 +386,7 @@ export default function RetentionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50/50">
       <Navbar />
       
       <UserListModal 
@@ -380,44 +396,49 @@ export default function RetentionPage() {
         users={selectedUsers} 
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+        <div className="md:flex md:items-center md:justify-between mb-8">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-3xl font-bold leading-tight text-slate-900 tracking-tight">
               Retention Analysis
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-slate-500">
               User cohort retention and lifecycle analysis • All dates in Beijing Time (UTC+8)
             </p>
           </div>
-          <button
-            onClick={handleDownload}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Download CSV
-          </button>
+          <div className="mt-4 flex md:mt-0 md:ml-4">
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download CSV
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Period</label>
               <select
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
+                className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
               >
                 <option value="week">Weekly</option>
                 <option value="month">Monthly</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Generation Type</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Generation Type</label>
               <select
                 value={genType}
                 onChange={(e) => setGenType(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border text-gray-900"
+                className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
               >
                 <option value="">All Features</option>
                 <option value="question_answering">Question Answering</option>
@@ -432,65 +453,62 @@ export default function RetentionPage() {
         
         {/* Lifecycle Chart */}
         {period === 'week' && (
-            <div className="bg-white shadow rounded-lg p-6 mb-8">
-                <div className="flex flex-wrap gap-x-6 gap-y-2 mb-6 p-4 bg-gray-50 rounded-lg text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <span role="img" aria-label="new">🆕</span>
-                    <span className="font-semibold text-gray-900">New:</span>
-                    <span className="text-gray-600">first seen</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span role="img" aria-label="active">✅</span>
-                    <span className="font-semibold text-gray-900">Active:</span>
-                    <span className="text-gray-600">retained from last week</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span role="img" aria-label="resurrected">🔙</span>
-                    <span className="font-semibold text-gray-900">Resurrected:</span>
-                    <span className="text-gray-600">came back</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span role="img" aria-label="at-risk">⚠️</span>
-                    <span className="font-semibold text-gray-900">At-Risk:</span>
-                    <span className="text-gray-600">may churn</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span role="img" aria-label="churned">❌</span>
-                    <span className="font-semibold text-gray-900">Churned:</span>
-                    <span className="text-gray-600">gone 4+ weeks</span>
-                  </div>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">User Lifecycle Breakdown</h3>
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                    🆕 New: first seen
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    ✅ Active: retained
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    🔙 Resurrected: came back
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    ⚠️ At-Risk: may churn
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
+                    ❌ Churned: gone 4+ weeks
+                  </span>
                 </div>
-                <Bar options={chartOptions} data={chartData} height={100} />
+                <div className="h-96 w-full relative">
+                    <Bar options={chartOptions} data={chartData} />
+                </div>
             </div>
         )}
 
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg overflow-x-auto">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200 bg-white">
+            <h3 className="text-lg font-semibold text-slate-900">Retention Cohorts ({period === 'week' ? 'Weekly' : 'Monthly'})</h3>
+          </div>
+          <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
+            <div className="p-12 text-center text-slate-500 animate-pulse">Loading retention data...</div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 w-32">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-20 w-32 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                     Cohort
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-32 bg-gray-50 z-10 w-24 border-r">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-32 bg-slate-50 z-20 w-24 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                     Users
                   </th>
                   {columns.map((col) => (
-                    <th key={col} className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">
+                    <th key={col} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[50px]">
                       {period === 'week' ? 'W' : 'M'}{col}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-slate-200">
                 {data.map((cohort) => (
-                  <tr key={cohort.cohort}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 w-32">
+                  <tr key={cohort.cohort} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 sticky left-0 bg-white z-10 w-32 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                       {cohort.cohort}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 sticky left-32 bg-white z-10 w-24 border-r">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 sticky left-32 bg-white z-10 w-24 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                       {cohort.total_users}
                     </td>
                     {columns.map((col) => {
@@ -499,11 +517,11 @@ export default function RetentionPage() {
                       const retained = cohort.periods[periodKey] || 0
                       const percentage = cohort.total_users > 0 ? Math.round((retained / cohort.total_users) * 100) : 0
                       const bgColor = retained > 0 ? getBgColor(percentage) : 'bg-white'
-                      const textColor = retained > 0 ? '' : 'text-gray-300'
+                      const textColor = retained > 0 ? '' : 'text-slate-300'
 
                       return (
-                        <td key={col} className={`px-2 py-4 whitespace-nowrap text-xs text-center ${bgColor} ${textColor}`}>
-                          {retained > 0 ? `${percentage}%` : ''}
+                        <td key={col} className={`px-2 py-4 whitespace-nowrap text-xs text-center border-r border-white/10 ${bgColor} ${textColor}`}>
+                          {retained > 0 ? `${percentage}%` : '-'}
                         </td>
                       )
                     })}
@@ -512,6 +530,7 @@ export default function RetentionPage() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       </main>
     </div>

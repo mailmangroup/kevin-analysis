@@ -27,17 +27,21 @@ ChartJS.register(
 )
 
 interface DashboardChartsProps {
-  metrics: any[]
-  types: any[]
-  costs: any[]
+  metrics?: any[]
+  types?: any[]
+  costs?: any[]
 }
 
 export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps) {
   // Sort metrics by date ascending for chart
-  const sortedMetrics = [...metrics].sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
-  
+  const sortedMetrics = [...(metrics || [])]
+    .filter(m => m?.date_beijing)
+    .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
+
   // Sort costs by month ascending
-  const sortedCosts = [...costs].sort((a, b) => a.year_month.localeCompare(b.year_month))
+  const sortedCosts = [...(costs || [])]
+    .filter(c => c?.year_month)
+    .sort((a, b) => a.year_month.localeCompare(b.year_month))
 
   const cardClass = "bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6"
   const titleClass = "text-lg font-semibold text-slate-900 mb-6"

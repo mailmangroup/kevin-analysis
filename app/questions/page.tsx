@@ -210,47 +210,13 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-48">Time</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-32">Sub-category</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Question & Answer</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-48">Tools</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Question & Answer</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
               {group.questions.map((q) => (
                 <tr key={q.span_id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 align-top font-mono">
-                    {new Date(q.start_time).toLocaleString('zh-CN')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm align-top">
-                    <span
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm"
-                      style={{
-                        backgroundColor: getSubCategoryColor(q.sub_category || 'chat').bg,
-                        color: getSubCategoryColor(q.sub_category || 'chat').solid,
-                        border: `1px solid ${getSubCategoryColor(q.sub_category || 'chat').border}`
-                      }}
-                    >
-                      {q.sub_category || 'chat'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-900 align-top">
-                    <div className="mb-3">
-                      <span className="font-bold text-primary-600 block mb-1">Q: </span>
-                      <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">
-                        {q.question}
-                      </div>
-                    </div>
-                    <div className="text-slate-600 text-xs">
-                      <span className="font-bold text-teal-600 block mb-1">A: </span>
-                      <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
-                        {q.answer || '(No answer)'}
-                      </div>
-                    </div>
-                    {q.sub_category === 'video_analysis' && (
-                      <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
-                    )}
-                  </td>
                   <td className="px-6 py-4 text-sm text-slate-500 align-top">
                     {q.tool_calls && q.tool_calls.length > 0 ? (
                       <div className="space-y-2">
@@ -267,6 +233,38 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
                       </div>
                     ) : (
                       <span className="text-slate-300 italic text-xs">No tools used</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-900 align-top">
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-primary-600">Q:</span>
+                        <span className="text-xs text-slate-500 font-mono">
+                          {new Date(q.start_time).toLocaleString('zh-CN')}
+                        </span>
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm"
+                          style={{
+                            backgroundColor: getSubCategoryColor(q.sub_category || 'chat').bg,
+                            color: getSubCategoryColor(q.sub_category || 'chat').solid,
+                            border: `1px solid ${getSubCategoryColor(q.sub_category || 'chat').border}`
+                          }}
+                        >
+                          {q.sub_category || 'chat'}
+                        </span>
+                      </div>
+                      <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">
+                        {q.question}
+                      </div>
+                    </div>
+                    <div className="text-slate-600 text-xs">
+                      <span className="font-bold text-teal-600 block mb-1">A: </span>
+                      <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
+                        {q.answer || '(No answer)'}
+                      </div>
+                    </div>
+                    {q.sub_category === 'video_analysis' && (
+                      <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
                     )}
                   </td>
                 </tr>

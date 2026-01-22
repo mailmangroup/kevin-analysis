@@ -56,7 +56,12 @@ interface LifecycleWeek {
   churned_users?: LifecycleUser[]
 }
 
-const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
+const fetcher = (url: string) => fetchWithAuth(url).then(res => {
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)
+  }
+  return res.json()
+})
 
 // Simple Modal Component
 function UserListModal({ isOpen, onClose, title, users }: { isOpen: boolean; onClose: () => void; title: string; users: LifecycleUser[] }) {
@@ -223,15 +228,23 @@ export default function RetentionPage() {
     apiUrl ? `${apiUrl}/phoenix/retention/lifecycle?${qs}` : null,
     fetcher
   )
-  const lifecycleData = lifecycleStats?.weekly_data || []
+  const lifecycleData = Array.isArray(lifecycleStats?.weekly_data) ? lifecycleStats.weekly_data : []
 
   const loading = cohortsLoading || lifecycleLoading
 
   // Process data for display (memoized)
   const data = useMemo(() => {
       const cohortsMap: { [key: string]: ProcessedCohort } = {}
-      
+
+      // Ensure rawData is an array
+      if (!Array.isArray(rawData)) {
+        return []
+      }
+
       rawData.forEach(record => {
+        // Skip records with null/undefined cohort
+        if (!record?.cohort) return
+
         if (!cohortsMap[record.cohort]) {
           cohortsMap[record.cohort] = {
             cohort: record.cohort,
@@ -239,31 +252,34 @@ export default function RetentionPage() {
             periods: {}
           }
         }
-        
+
         if (record.activity_period === record.cohort) {
           cohortsMap[record.cohort].total_users = record.users
         }
-        
+
         cohortsMap[record.cohort].periods[record.activity_period] = record.users
       })
-      
-      return Object.values(cohortsMap).sort((a, b) => b.cohort.localeCompare(a.cohort))
+
+      return Object.values(cohortsMap)
+        .filter(c => c.cohort) // Filter out any entries with null/undefined cohort
+        .sort((a, b) => (b.cohort || '').localeCompare(a.cohort || ''))
   }, [rawData])
 
   // Update maxPeriods separately to avoid side-effect warnings
   useEffect(() => {
-     if (rawData.length === 0) return
+     if (!Array.isArray(rawData) || rawData.length === 0) return
 
      // Find the latest activity period across ALL data
      // This ensures that even if a specific cohort stopped having activity,
      // we still show columns up to the current date (represented by latest activity)
      let globalLatestPeriod = ''
      rawData.forEach(r => {
-        if (r.activity_period > globalLatestPeriod) globalLatestPeriod = r.activity_period
+        if (r?.activity_period && r.activity_period > globalLatestPeriod) globalLatestPeriod = r.activity_period
      })
 
      let maxIdx = 0
      rawData.forEach(record => {
+        if (!record?.cohort) return
         // Calculate diff between cohort and the GLOBAL latest period
         const diff = getDiff(record.cohort, globalLatestPeriod, period)
         if (diff > maxIdx) maxIdx = diff

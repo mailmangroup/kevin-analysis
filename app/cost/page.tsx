@@ -39,7 +39,12 @@ interface MonthlyCostSummary {
   total_tokens: number
 }
 
-const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
+const fetcher = (url: string) => fetchWithAuth(url).then(res => {
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)
+  }
+  return res.json()
+})
 
 export default function CostPage() {
   const { profile, fetchProfile } = useUserStore()
@@ -55,7 +60,9 @@ export default function CostPage() {
     fetcher,
     {
       onSuccess: (data) => {
-        data.sort((a, b) => a.date.localeCompare(b.date))
+        if (Array.isArray(data)) {
+          data.sort((a, b) => a.date.localeCompare(b.date))
+        }
       }
     }
   )
@@ -65,7 +72,9 @@ export default function CostPage() {
     fetcher,
     {
        onSuccess: (data) => {
-         data.sort((a, b) => a.year_month.localeCompare(b.year_month))
+         if (Array.isArray(data)) {
+           data.sort((a, b) => a.year_month.localeCompare(b.year_month))
+         }
        }
     }
   )
@@ -101,12 +110,16 @@ export default function CostPage() {
     }
   }
 
+  // Ensure data is always an array for chart mapping
+  const safeDailyData = Array.isArray(dailyData) ? dailyData : []
+  const safeMonthlyData = Array.isArray(monthlyData) ? monthlyData : []
+
   const dailyChartData = {
-    labels: dailyData.map((d) => d.date),
+    labels: safeDailyData.map((d) => d.date),
     datasets: [
       {
         label: 'Daily Cost (USD)',
-        data: dailyData.map((d) => d.total_cost_usd),
+        data: safeDailyData.map((d) => d.total_cost_usd),
         backgroundColor: 'rgba(249, 115, 22, 0.2)', // Orange-500
         borderColor: '#f97316',
         borderWidth: 2,
@@ -116,11 +129,11 @@ export default function CostPage() {
   }
 
   const dailyTokenData = {
-    labels: dailyData.map((d) => d.date),
+    labels: safeDailyData.map((d) => d.date),
     datasets: [
       {
         label: 'Daily Tokens',
-        data: dailyData.map((d) => d.total_tokens),
+        data: safeDailyData.map((d) => d.total_tokens),
         backgroundColor: 'rgba(14, 165, 233, 0.2)', // Sky-500
         borderColor: '#0ea5e9',
         borderWidth: 2,
@@ -130,11 +143,11 @@ export default function CostPage() {
   }
 
   const monthlyChartData = {
-    labels: monthlyData.map((d) => d.year_month),
+    labels: safeMonthlyData.map((d) => d.year_month),
     datasets: [
       {
         label: 'Monthly Cost (USD)',
-        data: monthlyData.map((d) => d.total_cost_usd),
+        data: safeMonthlyData.map((d) => d.total_cost_usd),
         backgroundColor: 'rgba(16, 185, 129, 0.2)', // Emerald-500
         borderColor: '#10b981',
         borderWidth: 2,

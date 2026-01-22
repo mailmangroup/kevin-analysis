@@ -65,7 +65,12 @@ interface Stats {
   grouped_questions?: BrandGroup[]
 }
 
-const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
+const fetcher = (url: string) => fetchWithAuth(url).then(res => {
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)
+  }
+  return res.json()
+})
 
 // Centralized color mapping for sub-categories
 const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: string }> = {
@@ -251,6 +256,9 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
                           }}
                         >
                           {q.sub_category || 'chat'}
+                        </span>
+                        <span className="text-xs text-slate-600 font-medium">
+                          {q.user_email}
                         </span>
                       </div>
                       <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">

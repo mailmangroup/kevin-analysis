@@ -7,7 +7,12 @@ import { DashboardCharts } from '@/components/DashboardCharts'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 
-const fetcher = (url: string) => fetchWithAuth(url).then(res => res.json())
+const fetcher = (url: string) => fetchWithAuth(url).then(res => {
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)
+  }
+  return res.json()
+})
 
 export default function Home() {
   const { profile, fetchProfile } = useUserStore()

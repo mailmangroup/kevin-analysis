@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  Filler,
 } from 'chart.js'
 import { Line, Doughnut, Bar } from 'react-chartjs-2'
 
@@ -23,7 +24,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler
 )
 
 interface DashboardChartsProps {
@@ -34,12 +36,12 @@ interface DashboardChartsProps {
 
 export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps) {
   // Sort metrics by date ascending for chart
-  const sortedMetrics = [...(metrics || [])]
+  const sortedMetrics = [...(Array.isArray(metrics) ? metrics : [])]
     .filter(m => m?.date_beijing)
     .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
 
   // Sort costs by month ascending
-  const sortedCosts = [...(costs || [])]
+  const sortedCosts = [...(Array.isArray(costs) ? costs : [])]
     .filter(c => c?.year_month)
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
 

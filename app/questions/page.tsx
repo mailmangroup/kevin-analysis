@@ -229,7 +229,7 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
                           <div key={idx} className="bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-100 text-xs">
                             <div className="font-semibold text-slate-700 mb-0.5">{tool.name}</div>
                             {tool.args && (
-                              <div className="text-slate-400 truncate max-w-[140px] font-mono text-[10px]">
+                              <div className="text-slate-400 font-mono text-[10px]">
                                 {JSON.stringify(tool.args)}
                               </div>
                             )}

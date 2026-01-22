@@ -41,6 +41,11 @@ export default function Home() {
 
   const loading = !apiUrl
 
+  // Calculate latest date from metrics
+  const latestDate = metrics && metrics.length > 0 
+    ? metrics.reduce((max: string, curr: any) => (curr.date_beijing > max ? curr.date_beijing : max), metrics[0].date_beijing)
+    : new Date().toISOString().split('T')[0]
+
   return (
     <div className="min-h-screen bg-slate-50/50">
       <Navbar />
@@ -52,7 +57,7 @@ export default function Home() {
               Dashboard Overview
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Last updated: {new Date().toLocaleDateString()} • All dates shown in Beijing Time (UTC+8)
+              Last updated: {latestDate} • All dates shown in Beijing Time (UTC+8)
             </p>
           </div>
         </div>

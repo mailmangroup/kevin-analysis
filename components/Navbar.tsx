@@ -22,9 +22,9 @@ export function Navbar() {
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">P</span>
+                  <span className="text-white font-bold text-lg">K</span>
                 </div>
-                <span>Phoenix Analysis</span>
+                <span>Kevin Usage Analysis</span>
               </Link>
             </div>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">

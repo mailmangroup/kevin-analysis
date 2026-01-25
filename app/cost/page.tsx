@@ -163,32 +163,40 @@ export default function CostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-mesh">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="md:flex md:items-center md:justify-between mb-8">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-3xl font-bold leading-tight text-slate-900 tracking-tight">
-              Cost Analysis
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Track token usage and estimated costs over time
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0">
-            <TimePeriodToggle value={period} onChange={setPeriod} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+        {/* Header Section */}
+        <div className="mb-10 animate-fade-in">
+          <div className="md:flex md:items-end md:justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+                Cost <span className="text-gradient">Analysis</span>
+              </h1>
+              <p className="mt-3 text-sm text-slate-500">
+                Track token usage and estimated costs over time
+              </p>
+            </div>
+            <div className="mt-5 md:mt-0">
+              <TimePeriodToggle value={period} onChange={setPeriod} />
+            </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl p-12 text-center text-slate-500 animate-pulse">
-            Loading cost data...
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-card">
+                <div className="h-5 w-40 shimmer rounded mb-6" />
+                <div className="h-72 shimmer rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* 1. Daily Cost Chart */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6">
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Cost (USD)</h3>
               <div className="h-72">
                 <Bar data={dailyChartData} options={chartOptions} />
@@ -196,7 +204,7 @@ export default function CostPage() {
             </div>
 
             {/* 2. Daily Token Usage */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6">
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Token Usage</h3>
               <div className="h-72">
                 <Bar data={dailyTokenData} options={chartOptions} />
@@ -204,7 +212,7 @@ export default function CostPage() {
             </div>
 
             {/* 3. Monthly Cost Summary */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6">
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Monthly Cost (USD)</h3>
               <div className="h-72">
                 <Bar data={monthlyChartData} options={chartOptions} />

@@ -46,13 +46,14 @@ export function HeroKPIGrid({ metrics, previousMetrics }: HeroKPIGridProps) {
   const contentChange = previousMetrics ? calculateChange(totalContent, prevTotalContent) : undefined
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       <HeroKPICard
         title="Avg Daily Users"
         value={avgDAU}
         change={dauChange}
         changeLabel="vs previous period"
         icon={<Users className="w-5 h-5" />}
+        index={0}
       />
       <HeroKPICard
         title="Questions Answered"
@@ -60,6 +61,7 @@ export function HeroKPIGrid({ metrics, previousMetrics }: HeroKPIGridProps) {
         change={questionsChange}
         changeLabel="vs previous period"
         icon={<MessageSquare className="w-5 h-5" />}
+        index={1}
       />
       <HeroKPICard
         title="Reports Generated"
@@ -68,6 +70,7 @@ export function HeroKPIGrid({ metrics, previousMetrics }: HeroKPIGridProps) {
         changeLabel="vs previous period"
         icon={<FileText className="w-5 h-5" />}
         annotation="estimated"
+        index={2}
       />
       <HeroKPICard
         title="Content Generated"
@@ -75,6 +78,7 @@ export function HeroKPIGrid({ metrics, previousMetrics }: HeroKPIGridProps) {
         change={contentChange}
         changeLabel="vs previous period"
         icon={<Sparkles className="w-5 h-5" />}
+        index={3}
       />
     </div>
   )

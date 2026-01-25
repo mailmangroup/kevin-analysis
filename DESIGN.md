@@ -84,6 +84,13 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 - Text Secondary: `rgb(100, 116, 139)` - `text-slate-500`
 - Borders: `rgb(226, 232, 240)` - `border-slate-200`
 
+#### Gradients
+- **Primary**: `gradient-primary` - Primary brand gradient
+- **Mesh**: `gradient-mesh` - Subtle background mesh
+- **Background**: `bg-mesh` - Radial gradient background for pages
+- **Text**: `text-gradient` - Gradient text for headings
+- **Border**: `gradient-border` - Gradient border effects
+
 ### Typography
 
 - **Font Family**: Inter (system font stack fallback)
@@ -117,6 +124,12 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 - **Badges**: `rounded-full` - Pill-shaped badges
 - **Chart Bars**: `borderRadius: 6` - Rounded bar corners
 
+### Scrollbar
+
+- **Style**: Custom thin scrollbar
+- **Track**: Transparent
+- **Thumb**: Slate-300 with hover effect
+
 ---
 
 ## Component Library
@@ -138,9 +151,10 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 ```
 
 **Visual Structure**:
-- Header: Title (uppercase, small) + Icon (optional)
+- Header: Title (uppercase, small) + Icon (optional) in animated container
 - Value: Large, bold number (4xl)
 - Footer: Trend badge + change label
+- Animations: Staggered fade-in entrance
 
 **States**:
 - **Trend Up**: Green badge with ↑ icon
@@ -148,11 +162,11 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 - **Neutral**: Gray badge with - icon
 
 **Styling**:
-- Background: White
-- Border: `border-slate-200`
+- Background: White, subtle gradient on hover
+- Border: `border-slate-200`, gradient border on hover
 - Padding: `p-6`
-- Shadow: `shadow-kpi`
-- Hover: `card-hover` (shadow transition)
+- Shadow: `shadow-card`, `shadow-card-hover` on hover
+- Hover: Smoother transitions
 
 ### HeroKPIGrid
 
@@ -228,14 +242,15 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 
 **Features**:
 - Fixed position with glass effect
-- Logo: "K" icon in amber square
-- Navigation links with hover states
+- Logo: Gradient logo with glow effect on hover
+- Navigation: Icons for each item, Active state indicators with background highlight
+- Mobile: Bottom navigation bar
 - Logout button
 
 **Styling**:
 - Background: `glass` utility (white/80 with backdrop blur)
-- Links: Underline on hover with amber accent
-- Active state: Border-bottom with amber
+- Links: Icons + Text, hover effects
+- Active state: Background highlight with gradient text
 
 ### DateRangePicker
 
@@ -249,6 +264,12 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 ---
 
 ## Page Layouts
+
+### Common Elements
+- **Background**: Consistent `bg-mesh` with subtle radial gradient
+- **Headings**: Gradient text (`text-gradient`) for page titles
+- **Loading**: Skeleton loading states with shimmer effect
+- **Spacing**: Improved spacing and responsive layouts
 
 ### Dashboard Overview (`/`)
 
@@ -371,7 +392,7 @@ The dashboard uses a **warm amber color scheme** that replaced the previous sky 
 
 ### Loading States
 
-- **Skeleton Loading**: Pulse animation with `animate-pulse`
+- **Skeleton Loading**: Shimmer effect (`shimmer` animation)
 - **Loading Messages**: Centered text with backdrop blur
 - **Empty States**: Icon + message with helpful text
 

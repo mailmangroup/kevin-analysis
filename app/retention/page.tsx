@@ -402,74 +402,91 @@ export default function RetentionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-mesh">
       <Navbar />
-      
-      <UserListModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={modalTitle} 
-        users={selectedUsers} 
+
+      <UserListModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalTitle}
+        users={selectedUsers}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="md:flex md:items-center md:justify-between mb-8">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-3xl font-bold leading-tight text-slate-900 tracking-tight">
-              Retention Analysis
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              User cohort retention and lifecycle analysis • All dates in Beijing Time (UTC+8)
-            </p>
-          </div>
-          <div className="mt-4 flex md:mt-0 md:ml-4">
-            <button
-              onClick={handleDownload}
-              className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-            >
-              <svg className="-ml-1 mr-2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download CSV
-            </button>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+        {/* Header Section */}
+        <div className="mb-10 animate-fade-in">
+          <div className="md:flex md:items-end md:justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+                Retention <span className="text-gradient">Analysis</span>
+              </h1>
+              <p className="mt-3 text-sm text-slate-500">
+                User cohort retention and lifecycle analysis • All dates in Beijing Time (UTC+8)
+              </p>
+            </div>
+            <div className="mt-5 md:mt-0">
+              <button
+                onClick={handleDownload}
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download CSV
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-card p-6 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Period</label>
-              <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
-              >
-                <option value="week">Weekly</option>
-                <option value="month">Monthly</option>
-              </select>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">Period</label>
+              <div className="relative">
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
+                >
+                  <option value="week">Weekly</option>
+                  <option value="month">Monthly</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Generation Type</label>
-              <select
-                value={genType}
-                onChange={(e) => setGenType(e.target.value)}
-                className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
-              >
-                <option value="">All Features</option>
-                <option value="question_answering">Question Answering</option>
-                <option value="video_analysis">Video Analysis</option>
-                <option value="report_qa">Report QA</option>
-                <option value="content_generation">Content Generation</option>
-                <option value="report_generation">Report Generation</option>
-              </select>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">Generation Type</label>
+              <div className="relative">
+                <select
+                  value={genType}
+                  onChange={(e) => setGenType(e.target.value)}
+                  className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
+                >
+                  <option value="">All Features</option>
+                  <option value="question_answering">Question Answering</option>
+                  <option value="video_analysis">Video Analysis</option>
+                  <option value="report_qa">Report QA</option>
+                  <option value="content_generation">Content Generation</option>
+                  <option value="report_generation">Report Generation</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
         {/* Lifecycle Chart */}
         {period === 'week' && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                 <h3 className="text-lg font-semibold text-slate-900 mb-6">User Lifecycle Breakdown</h3>
                 <div className="flex flex-wrap gap-4 mb-6">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(250, 204, 21, 0.2)', color: 'rgb(161, 98, 7)' }}>
@@ -494,8 +511,8 @@ export default function RetentionPage() {
             </div>
         )}
 
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-slate-200 bg-white">
+        <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="px-6 py-5 border-b border-slate-100 bg-white">
             <h3 className="text-lg font-semibold text-slate-900">Retention Cohorts ({period === 'week' ? 'Weekly' : 'Monthly'})</h3>
           </div>
           <div className="overflow-x-auto">

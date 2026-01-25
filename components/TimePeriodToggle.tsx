@@ -15,16 +15,16 @@ const periods: { value: Period; label: string }[] = [
 
 export function TimePeriodToggle({ value, onChange }: TimePeriodToggleProps) {
   return (
-    <div className="inline-flex items-center bg-slate-100 rounded-lg p-1">
+    <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-card ring-1 ring-slate-200/50">
       {periods.map((period) => (
         <button
           key={period.value}
           onClick={() => onChange(period.value)}
           className={`
-            px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200
+            relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200
             ${value === period.value
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
             }
           `}
         >

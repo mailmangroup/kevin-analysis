@@ -287,47 +287,47 @@ export default function RetentionPage() {
      setMaxPeriods(maxIdx)
   }, [rawData, period])
 
-  // Helper to get color intensity based on percentage
+  // Helper to get color intensity based on percentage - warm amber palette
   const getBgColor = (percentage: number) => {
-    if (percentage >= 80) return 'bg-blue-800 text-white'
-    if (percentage >= 60) return 'bg-blue-600 text-white'
-    if (percentage >= 40) return 'bg-blue-400 text-white'
-    if (percentage >= 20) return 'bg-blue-200 text-blue-900'
-    if (percentage > 0) return 'bg-blue-100 text-blue-900'
+    if (percentage >= 80) return 'bg-amber-600 text-white'
+    if (percentage >= 60) return 'bg-amber-500 text-white'
+    if (percentage >= 40) return 'bg-amber-400 text-white'
+    if (percentage >= 20) return 'bg-amber-200 text-amber-900'
+    if (percentage > 0) return 'bg-amber-100 text-amber-900'
     return 'bg-gray-50 text-gray-400'
   }
 
   // Generate relative headers
   const columns = Array.from({ length: maxPeriods + 1 }, (_, i) => i)
 
-  // Chart Data Preparation
+  // Chart Data Preparation - improved lifecycle color gradient
   const chartData = {
     labels: lifecycleData.map((d: LifecycleWeek) => d.week),
     datasets: [
         {
             label: 'New',
             data: lifecycleData.map((d: LifecycleWeek) => d.new),
-            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+            backgroundColor: 'rgba(250, 204, 21, 0.9)', // Bright yellow (#facc15)
         },
         {
             label: 'Active',
             data: lifecycleData.map((d: LifecycleWeek) => d.active),
-            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            backgroundColor: 'rgba(245, 158, 11, 0.9)', // Amber (#f59e0b)
         },
         {
             label: 'Resurrected',
             data: lifecycleData.map((d: LifecycleWeek) => d.resurrected),
-            backgroundColor: 'rgba(153, 102, 255, 0.7)',
+            backgroundColor: 'rgba(251, 146, 60, 0.9)', // Light orange (#fb923c)
         },
         {
             label: 'At-Risk',
             data: lifecycleData.map((d: LifecycleWeek) => -d.at_risk), // Negative for display below axis
-            backgroundColor: 'rgba(255, 206, 86, 0.7)',
+            backgroundColor: 'rgba(249, 115, 22, 0.9)', // Orange (#f97316)
         },
         {
             label: 'Churned',
             data: lifecycleData.map((d: LifecycleWeek) => -d.churned), // Negative
-            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+            backgroundColor: 'rgba(220, 38, 38, 0.9)', // Red (#dc2626)
         },
     ],
   }
@@ -472,19 +472,19 @@ export default function RetentionPage() {
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
                 <h3 className="text-lg font-semibold text-slate-900 mb-6">User Lifecycle Breakdown</h3>
                 <div className="flex flex-wrap gap-4 mb-6">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(250, 204, 21, 0.2)', color: 'rgb(161, 98, 7)' }}>
                     🆕 New: first seen
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', color: 'rgb(180, 83, 9)' }}>
                     ✅ Active: retained
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(251, 146, 60, 0.2)', color: 'rgb(194, 65, 12)' }}>
                     🔙 Resurrected: came back
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(249, 115, 22, 0.2)', color: 'rgb(154, 52, 18)' }}>
                     ⚠️ At-Risk: may churn
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(220, 38, 38, 0.2)', color: 'rgb(153, 27, 27)' }}>
                     ❌ Churned: gone 4+ weeks
                   </span>
                 </div>

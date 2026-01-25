@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import useSWR from 'swr'
 import { Navbar } from '@/components/Navbar'
+import { TimePeriodToggle } from '@/components/TimePeriodToggle'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
+import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -46,9 +48,16 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   return res.json()
 })
 
+const periodToDays: Record<Period, number> = {
+  '7D': 7,
+  '30D': 30,
+  '90D': 90,
+}
+
 export default function CostPage() {
   const { profile, fetchProfile } = useUserStore()
-  const [days, setDays] = useState(30)
+  const { period, setPeriod } = useTimePeriodStore()
+  const days = periodToDays[period]
 
   useEffect(() => {
     fetchProfile()
@@ -120,10 +129,9 @@ export default function CostPage() {
       {
         label: 'Daily Cost (USD)',
         data: safeDailyData.map((d) => d.total_cost_usd),
-        backgroundColor: 'rgba(249, 115, 22, 0.2)', // Orange-500
-        borderColor: '#f97316',
-        borderWidth: 2,
-        borderRadius: 4,
+        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber primary
+        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+        borderRadius: 6,
       },
     ],
   }
@@ -134,10 +142,9 @@ export default function CostPage() {
       {
         label: 'Daily Tokens',
         data: safeDailyData.map((d) => d.total_tokens),
-        backgroundColor: 'rgba(14, 165, 233, 0.2)', // Sky-500
-        borderColor: '#0ea5e9',
-        borderWidth: 2,
-        borderRadius: 4,
+        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber primary
+        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+        borderRadius: 6,
       },
     ],
   }
@@ -148,10 +155,9 @@ export default function CostPage() {
       {
         label: 'Monthly Cost (USD)',
         data: safeMonthlyData.map((d) => d.total_cost_usd),
-        backgroundColor: 'rgba(16, 185, 129, 0.2)', // Emerald-500
-        borderColor: '#10b981',
-        borderWidth: 2,
-        borderRadius: 4,
+        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber primary
+        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+        borderRadius: 6,
       },
     ],
   }
@@ -170,16 +176,8 @@ export default function CostPage() {
               Track token usage and estimated costs over time
             </p>
           </div>
-          <div className="mt-4 flex md:mt-0 md:ml-4">
-             <select
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
-              >
-                <option value={7}>Last 7 Days</option>
-                <option value={30}>Last 30 Days</option>
-                <option value={90}>Last 90 Days</option>
-              </select>
+          <div className="mt-4 md:mt-0">
+            <TimePeriodToggle value={period} onChange={setPeriod} />
           </div>
         </div>
 

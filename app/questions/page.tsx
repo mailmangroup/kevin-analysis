@@ -7,7 +7,7 @@ import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { subDays, format } from 'date-fns'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Download } from 'lucide-react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -72,32 +72,86 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   return res.json()
 })
 
-// Centralized color mapping for sub-categories
+// Generate markdown content from grouped questions
+function generateMarkdown(groupedQuestions: BrandGroup[], startDate: string, endDate: string): string {
+  const lines: string[] = []
+
+  lines.push('# Questions Analysis Report')
+  lines.push('')
+  lines.push(`**Date Range:** ${startDate} to ${endDate}`)
+  lines.push(`**Generated:** ${new Date().toLocaleString('zh-CN')}`)
+  lines.push(`**Total Brands:** ${groupedQuestions.length}`)
+  lines.push(`**Total Questions:** ${groupedQuestions.reduce((sum, g) => sum + g.count, 0)}`)
+  lines.push('')
+  lines.push('---')
+  lines.push('')
+
+  for (const group of groupedQuestions) {
+    lines.push(`## ${group.brand_name}`)
+    lines.push('')
+    lines.push(`**Brand ID:** \`${group.brand_id}\``)
+    lines.push(`**Question Count:** ${group.count}`)
+    lines.push('')
+
+    for (const q of group.questions) {
+      lines.push(`### Question`)
+      lines.push('')
+      lines.push(`- **Time:** ${new Date(q.start_time).toLocaleString('zh-CN')}`)
+      lines.push(`- **User:** ${q.user_email}`)
+      lines.push(`- **Category:** ${q.sub_category || 'chat'}`)
+      lines.push('')
+      lines.push('**Q:**')
+      lines.push('')
+      lines.push(`> ${q.question.replace(/\n/g, '\n> ')}`)
+      lines.push('')
+      lines.push('**A:**')
+      lines.push('')
+      lines.push(q.answer || '_(No answer)_')
+      lines.push('')
+
+      if (q.tool_calls && q.tool_calls.length > 0) {
+        lines.push('**Tools Used:**')
+        lines.push('')
+        for (const tool of q.tool_calls) {
+          lines.push(`- \`${tool.name}\`${tool.args ? `: ${JSON.stringify(tool.args)}` : ''}`)
+        }
+        lines.push('')
+      }
+
+      lines.push('---')
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+// Centralized color mapping for sub-categories - warm color palette
 const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: string }> = {
   'video_analysis': {
-    bg: 'rgba(255, 99, 132, 0.5)',
-    border: 'rgba(255, 99, 132, 1)',
-    solid: 'rgb(255, 99, 132)'
+    bg: 'rgba(249, 115, 22, 0.5)',    // Orange
+    border: 'rgba(249, 115, 22, 1)',
+    solid: 'rgb(234, 88, 12)'
   },
   'chat': {
-    bg: 'rgba(54, 162, 235, 0.5)',
-    border: 'rgba(54, 162, 235, 1)',
-    solid: 'rgb(54, 162, 235)'
+    bg: 'rgba(245, 158, 11, 0.5)',    // Amber (primary)
+    border: 'rgba(245, 158, 11, 1)',
+    solid: 'rgb(217, 119, 6)'
   },
   'report': {
-    bg: 'rgba(255, 206, 86, 0.5)',
-    border: 'rgba(255, 206, 86, 1)',
-    solid: 'rgb(255, 206, 86)'
+    bg: 'rgba(251, 191, 36, 0.5)',    // Yellow
+    border: 'rgba(251, 191, 36, 1)',
+    solid: 'rgb(202, 138, 4)'
   },
   'content': {
-    bg: 'rgba(75, 192, 192, 0.5)',
-    border: 'rgba(75, 192, 192, 1)',
-    solid: 'rgb(75, 192, 192)'
+    bg: 'rgba(251, 146, 60, 0.5)',    // Light Orange
+    border: 'rgba(251, 146, 60, 1)',
+    solid: 'rgb(249, 115, 22)'
   },
   'other': {
-    bg: 'rgba(153, 102, 255, 0.5)',
-    border: 'rgba(153, 102, 255, 1)',
-    solid: 'rgb(153, 102, 255)'
+    bg: 'rgba(148, 163, 184, 0.5)',   // Slate
+    border: 'rgba(148, 163, 184, 1)',
+    solid: 'rgb(100, 116, 139)'
   },
 }
 
@@ -177,7 +231,7 @@ function FollowUpQuestions({ spanId, apiUrl }: { spanId: string; apiUrl: string 
               <span className="text-slate-800">{followUp.question}</span>
             </div>
             <div className="text-slate-600 bg-white p-2.5 rounded border border-slate-100 whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar">
-              <span className="font-bold text-teal-600">A: </span>
+              <span className="font-bold text-amber-600">A: </span>
               {followUp.answer || '(No answer)'}
             </div>
           </div>
@@ -211,35 +265,17 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
       </div>
       
       {isOpen && (
-        <div className="bg-slate-50/50 border-t border-slate-100">
-          <table className="min-w-full divide-y divide-slate-200">
+        <div className="bg-slate-50/50 border-t border-slate-100 overflow-x-auto">
+          <table className="w-full min-w-[800px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-48">Tools</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Question & Answer</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-56">Tools</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
               {group.questions.map((q) => (
                 <tr key={q.span_id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-500 align-top">
-                    {q.tool_calls && q.tool_calls.length > 0 ? (
-                      <div className="space-y-2">
-                        {q.tool_calls.map((tool, idx) => (
-                          <div key={idx} className="bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-100 text-xs">
-                            <div className="font-semibold text-slate-700 mb-0.5">{tool.name}</div>
-                            {tool.args && (
-                              <div className="text-slate-400 font-mono text-[10px]">
-                                {JSON.stringify(tool.args)}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-300 italic text-xs">No tools used</span>
-                    )}
-                  </td>
                   <td className="px-6 py-4 text-sm text-slate-900 align-top">
                     <div className="mb-3">
                       <div className="flex items-center gap-2 mb-1">
@@ -266,13 +302,31 @@ function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: stri
                       </div>
                     </div>
                     <div className="text-slate-600 text-xs">
-                      <span className="font-bold text-teal-600 block mb-1">A: </span>
+                      <span className="font-bold text-amber-600 block mb-1">A: </span>
                       <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
                         {q.answer || '(No answer)'}
                       </div>
                     </div>
                     {q.sub_category === 'video_analysis' && (
                       <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-500 align-top">
+                    {q.tool_calls && q.tool_calls.length > 0 ? (
+                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                        {q.tool_calls.map((tool, idx) => (
+                          <div key={idx} className="bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-100 text-xs">
+                            <div className="font-semibold text-slate-700 mb-0.5">{tool.name}</div>
+                            {tool.args && (
+                              <div className="text-slate-400 font-mono text-[10px] break-all">
+                                {JSON.stringify(tool.args)}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-300 italic text-xs">No tools used</span>
                     )}
                   </td>
                 </tr>
@@ -408,23 +462,43 @@ export default function QuestionsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Quick Select</label>
-               <select
-                 className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
-                 onChange={handleRangeChange}
-                 value={quickSelect}
-               >
-                 <option value="yesterday">Yesterday</option>
-                 <option value="last7">Last 7 Days</option>
-                 <option value="last30">Last 30 Days</option>
-                 <option value="custom">Custom Range</option>
-               </select>
+        <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 p-8 mb-8 backdrop-blur-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            {/* Quick Select */}
+            <div className="lg:col-span-3">
+               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
+                 <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                 </svg>
+                 Quick Select
+               </label>
+               <div className="relative">
+                 <select
+                   className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
+                   onChange={handleRangeChange}
+                   value={quickSelect}
+                 >
+                   <option value="yesterday">Yesterday</option>
+                   <option value="last7">Last 7 Days</option>
+                   <option value="last30">Last 30 Days</option>
+                   <option value="custom">Custom Range</option>
+                 </select>
+                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                   </svg>
+                 </div>
+               </div>
             </div>
-            <div className="md:col-span-2">
-               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Date Range</label>
+
+            {/* Date Range */}
+            <div className="lg:col-span-6">
+               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
+                 <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                 </svg>
+                 Date Range
+               </label>
                <DateRangePicker
                  startDate={startDate}
                  endDate={endDate}
@@ -432,20 +506,34 @@ export default function QuestionsPage() {
                  onEndDateChange={(date) => handleDateChange('end', date)}
                />
             </div>
-            <div>
-               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Category</label>
-               <select
-                 value={subCategory}
-                 onChange={(e) => setSubCategory(e.target.value)}
-                 className="block w-full h-10 rounded-md border-0 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 shadow-sm"
-               >
-                 <option value="all">All Sub-categories</option>
-                 {stats?.sub_categories?.map((item) => (
-                   <option key={item.sub_category} value={item.sub_category}>
-                     {item.sub_category}
-                   </option>
-                 ))}
-               </select>
+
+            {/* Category Filter */}
+            <div className="lg:col-span-3">
+               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
+                 <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                 </svg>
+                 Category
+               </label>
+               <div className="relative">
+                 <select
+                   value={subCategory}
+                   onChange={(e) => setSubCategory(e.target.value)}
+                   className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
+                 >
+                   <option value="all">All Sub-categories</option>
+                   {stats?.sub_categories?.map((item) => (
+                     <option key={item.sub_category} value={item.sub_category}>
+                       {item.sub_category}
+                     </option>
+                   ))}
+                 </select>
+                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                   </svg>
+                 </div>
+               </div>
             </div>
           </div>
         </div>
@@ -482,9 +570,9 @@ export default function QuestionsPage() {
                         datasets: [{
                           label: 'Queries',
                           data: stats.daily_counts.map(d => d.count),
-                          backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                          hoverBackgroundColor: 'rgba(59, 130, 246, 1)',
-                          borderRadius: 4,
+                          backgroundColor: 'rgba(245, 158, 11, 0.8)', // Warm amber
+                          hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+                          borderRadius: 6,
                         }]
                       }
                     }
@@ -588,7 +676,7 @@ export default function QuestionsPage() {
                   {stats.top_users.map((u, idx) => (
                     <li key={u.user_email} className="py-3 flex justify-between items-center group hover:bg-slate-50 rounded-lg px-2 transition-colors">
                       <div className="flex items-center gap-3">
-                         <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${idx < 3 ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>
+                         <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${idx < 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
                            {idx + 1}
                          </span>
                          <span className="text-sm font-medium text-slate-900 truncate max-w-[200px]" title={u.user_email}>{u.user_email}</span>
@@ -606,16 +694,38 @@ export default function QuestionsPage() {
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden mt-8">
           <div className="px-6 py-5 border-b border-slate-200 bg-white flex justify-between items-center">
             <h3 className="text-lg font-semibold text-slate-900">Questions by Brand</h3>
-            {stats?.grouped_questions && (
+            <div className="flex items-center gap-3">
+              {stats?.grouped_questions && stats.grouped_questions.length > 0 && (
+                <button
+                  onClick={() => {
+                    const markdown = generateMarkdown(stats.grouped_questions!, startDate, endDate)
+                    const blob = new Blob([markdown], { type: 'text/markdown' })
+                    const url = window.URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `questions_by_brand_${startDate}_${endDate}.md`
+                    document.body.appendChild(a)
+                    a.click()
+                    window.URL.revokeObjectURL(url)
+                    document.body.removeChild(a)
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Download MD
+                </button>
+              )}
+              {stats?.grouped_questions && (
                 <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                     {stats.grouped_questions.length} Brands
                 </span>
-            )}
+              )}
+            </div>
           </div>
           {statsLoading ? (
             <div className="p-12 text-center text-slate-500 animate-pulse">Loading questions...</div>
           ) : stats?.grouped_questions && stats.grouped_questions.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div>
               {stats.grouped_questions.map((group) => (
                 <BrandQuestionGroup key={group.brand_id} group={group} apiUrl={apiUrl || ''} />
               ))}

@@ -4,8 +4,11 @@ import { useEffect } from 'react'
 import useSWR from 'swr'
 import { Navbar } from '@/components/Navbar'
 import { DashboardCharts } from '@/components/DashboardCharts'
+import { HeroKPIGrid } from '@/components/HeroKPIGrid'
+import { TimePeriodToggle } from '@/components/TimePeriodToggle'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
+import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
 
 const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   if (!res.ok) {
@@ -14,23 +17,40 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   return res.json()
 })
 
+const periodToDays: Record<Period, number> = {
+  '7D': 7,
+  '30D': 30,
+  '90D': 90,
+}
+
 export default function Home() {
   const { profile, fetchProfile } = useUserStore()
+  const { period, setPeriod } = useTimePeriodStore()
 
   useEffect(() => {
     fetchProfile()
   }, [fetchProfile])
 
   const apiUrl = profile?.kawo_api_url
+  const days = periodToDays[period]
 
-  // Fetch all dashboard data using SWR
+  // Fetch current period metrics
   const { data: metrics = [] } = useSWR(
-    apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=30` : null,
+    apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=${days}` : null,
     fetcher
   )
 
+  // Fetch previous period metrics for comparison
+  const { data: previousMetrics = [] } = useSWR(
+    apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=${days * 2}` : null,
+    fetcher
+  )
+
+  // Get only the previous period data (older half)
+  const previousPeriodMetrics = previousMetrics.slice(0, days)
+
   const { data: types = [] } = useSWR(
-    apiUrl ? `${apiUrl}/phoenix/usage/types?days=30` : null,
+    apiUrl ? `${apiUrl}/phoenix/usage/types?days=${days}` : null,
     fetcher
   )
 
@@ -60,6 +80,9 @@ export default function Home() {
               Last updated: {latestDate} • All dates shown in Beijing Time (UTC+8)
             </p>
           </div>
+          <div className="mt-4 md:mt-0">
+            <TimePeriodToggle value={period} onChange={setPeriod} />
+          </div>
         </div>
 
         {loading ? (
@@ -68,47 +91,16 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* Hero KPI Cards */}
+            <div className="mb-8">
+              <HeroKPIGrid
+                metrics={metrics}
+                previousMetrics={previousPeriodMetrics.length > 0 ? previousPeriodMetrics : undefined}
+              />
+            </div>
+
             {/* Charts */}
             <DashboardCharts metrics={metrics} types={types} costs={costs} />
-
-            {/* Quick Links */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
-              <a 
-                href="/questions" 
-                className="group relative block p-8 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary-50 rounded-full blur-2xl opacity-0 group-hover:opacity-50 transition-opacity" />
-                <span className="text-xl font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">Questions</span>
-                <p className="text-sm text-slate-500 mt-2 leading-relaxed">Browse and filter through user questions to understand common patterns.</p>
-                <div className="mt-4 flex items-center text-primary-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                  View Questions <span className="ml-1">→</span>
-                </div>
-              </a>
-              
-              <a 
-                href="/cost" 
-                className="group relative block p-8 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-50 rounded-full blur-2xl opacity-0 group-hover:opacity-50 transition-opacity" />
-                <span className="text-xl font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors">Cost</span>
-                <p className="text-sm text-slate-500 mt-2 leading-relaxed">Analyze monthly costs and usage breakdowns across different models.</p>
-                <div className="mt-4 flex items-center text-emerald-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                  View Cost Analysis <span className="ml-1">→</span>
-                </div>
-              </a>
-
-              <a 
-                href="/retention" 
-                className="group relative block p-8 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-violet-50 rounded-full blur-2xl opacity-0 group-hover:opacity-50 transition-opacity" />
-                <span className="text-xl font-semibold text-slate-900 group-hover:text-violet-600 transition-colors">Retention</span>
-                <p className="text-sm text-slate-500 mt-2 leading-relaxed">Track user retention cohorts and long-term engagement metrics.</p>
-                <div className="mt-4 flex items-center text-violet-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                  View Retention <span className="ml-1">→</span>
-                </div>
-              </a>
-            </div>
           </>
         )}
       </main>

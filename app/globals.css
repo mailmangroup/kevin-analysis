@@ -16,5 +16,28 @@ body {
   .glass {
     @apply bg-white/80 backdrop-blur-md border-b border-slate-200/50;
   }
+
+  /* Trend indicator styles */
+  .trend-up {
+    @apply text-trend-up bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1;
+  }
+
+  .trend-down {
+    @apply text-trend-down bg-red-50 px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1;
+  }
+
+  .trend-neutral {
+    @apply text-trend-neutral bg-slate-100 px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1;
+  }
+
+  /* KPI card shadow */
+  .shadow-kpi {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply hover:shadow-md transition-shadow duration-300;
+  }
 }
 

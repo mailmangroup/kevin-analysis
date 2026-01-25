@@ -16,9 +16,9 @@ export function DateRangePicker({
   onEndDateChange,
 }: DateRangePickerProps) {
   return (
-    <div className="flex h-10 items-center space-x-4 rounded-md bg-white px-2 ring-1 ring-inset ring-slate-300 shadow-sm">
-      <div className="flex items-center space-x-2">
-        <label htmlFor="start-date" className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+    <div className="flex h-11 items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 shadow-sm hover:shadow transition-all">
+      <div className="flex items-center gap-3 flex-1">
+        <label htmlFor="start-date" className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
           From
         </label>
         <input
@@ -26,12 +26,12 @@ export function DateRangePicker({
           id="start-date"
           value={startDate}
           onChange={(e) => onStartDateChange(e.target.value)}
-          className="block w-full h-8 rounded-md border-0 bg-white px-2 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+          className="block w-full h-9 rounded-lg border-0 bg-slate-50 hover:bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 focus:bg-white sm:text-sm transition-all font-medium cursor-pointer"
         />
       </div>
-      <div className="h-4 w-px bg-slate-200" />
-      <div className="flex items-center space-x-2">
-        <label htmlFor="end-date" className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+      <div className="h-6 w-px bg-slate-200" />
+      <div className="flex items-center gap-3 flex-1">
+        <label htmlFor="end-date" className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
           To
         </label>
         <input
@@ -39,7 +39,7 @@ export function DateRangePicker({
           id="end-date"
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
-          className="block w-full h-8 rounded-md border-0 bg-white px-2 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+          className="block w-full h-9 rounded-lg border-0 bg-slate-50 hover:bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 focus:bg-white sm:text-sm transition-all font-medium cursor-pointer"
         />
       </div>
     </div>

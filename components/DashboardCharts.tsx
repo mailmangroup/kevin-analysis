@@ -79,11 +79,11 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
 
   return (
     <div className="space-y-6 mb-8">
-      {/* 1. Daily Active Users (Last 30 Days) */}
+      {/* 1. Daily Active Users */}
       <div className={cardClass}>
         <div className="flex items-center justify-between mb-6">
           <h3 className={titleClass.replace('mb-6', 'mb-0')}>Daily Active Users</h3>
-          <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Last 30 Days</span>
+          <span className="text-sm text-slate-500 bg-primary-50 px-3 py-1 rounded-full">Trend</span>
         </div>
         <div className="h-72">
           <Line
@@ -92,11 +92,11 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
               datasets: [{
                 label: 'Active Users',
                 data: sortedMetrics.map(m => m.dau),
-                borderColor: '#0ea5e9', // Primary-500
-                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                borderColor: '#f59e0b', // Warm amber primary
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
                 borderWidth: 2,
                 pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#0ea5e9',
+                pointBorderColor: '#f59e0b',
                 pointBorderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6,
@@ -115,11 +115,14 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
         </div>
       </div>
 
-      {/* 2. Queries by Type per Day (Last 30 Days) - Split into 3 Charts */}
+      {/* 2. Queries by Type - Split into 3 Charts with consistent amber color */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 2a. Report Generation */}
         <div className={cardClass}>
-          <h3 className={titleClass}>Report Generation</h3>
+          <div className="mb-4">
+            <h3 className={titleClass.replace('mb-6', 'mb-2')}>Report Generation</h3>
+            <span className="text-xs font-medium text-slate-400 italic">estimated</span>
+          </div>
           <div className="h-64">
             <Bar
               data={{
@@ -127,9 +130,10 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
                 datasets: [
                   {
                     label: 'Report Generation',
-                    data: sortedMetrics.map(m => m.report_generation_count || 0),
-                    backgroundColor: '#10b981', // Emerald-500
-                    borderRadius: 4,
+                    data: sortedMetrics.map(m => (m.report_generation_count || 0) / 10),
+                    backgroundColor: '#f59e0b', // Amber primary
+                    hoverBackgroundColor: '#d97706', // Darker amber on hover
+                    borderRadius: 6,
                   }
                 ]
               }}
@@ -149,8 +153,9 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
                   {
                     label: 'Question Answering',
                     data: sortedMetrics.map(m => m.question_answering_count || 0),
-                    backgroundColor: '#8b5cf6', // Violet-500
-                    borderRadius: 4,
+                    backgroundColor: '#f59e0b', // Amber primary
+                    hoverBackgroundColor: '#d97706', // Darker amber on hover
+                    borderRadius: 6,
                   }
                 ]
               }}
@@ -170,8 +175,9 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
                   {
                     label: 'Content Generation',
                     data: sortedMetrics.map(m => m.content_generation_count || 0),
-                    backgroundColor: '#f59e0b', // Amber-500
-                    borderRadius: 4,
+                    backgroundColor: '#f59e0b', // Amber primary
+                    hoverBackgroundColor: '#d97706', // Darker amber on hover
+                    borderRadius: 6,
                   }
                 ]
               }}

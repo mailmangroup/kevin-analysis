@@ -66,26 +66,12 @@ export default function CostPage() {
   const apiUrl = profile?.kawo_api_url
   const { data: dailyData = [], isLoading: dailyLoading } = useSWR<DailyCostSummary[]>(
     apiUrl ? `${apiUrl}/phoenix/cost/daily?days=${days}` : null,
-    fetcher,
-    {
-      onSuccess: (data) => {
-        if (Array.isArray(data)) {
-          data.sort((a, b) => a.date.localeCompare(b.date))
-        }
-      }
-    }
+    fetcher
   )
 
   const { data: monthlyData = [], isLoading: monthlyLoading } = useSWR<MonthlyCostSummary[]>(
     apiUrl ? `${apiUrl}/phoenix/cost/monthly` : null,
-    fetcher,
-    {
-       onSuccess: (data) => {
-         if (Array.isArray(data)) {
-           data.sort((a, b) => a.year_month.localeCompare(b.year_month))
-         }
-       }
-    }
+    fetcher
   )
   
   const loading = dailyLoading || monthlyLoading
@@ -120,8 +106,12 @@ export default function CostPage() {
   }
 
   // Ensure data is always an array for chart mapping
-  const safeDailyData = Array.isArray(dailyData) ? dailyData : []
-  const safeMonthlyData = Array.isArray(monthlyData) ? monthlyData : []
+  const safeDailyData = Array.isArray(dailyData) 
+    ? [...dailyData].sort((a, b) => a.date.localeCompare(b.date)) 
+    : []
+  const safeMonthlyData = Array.isArray(monthlyData) 
+    ? [...monthlyData].sort((a, b) => a.year_month.localeCompare(b.year_month)) 
+    : []
 
   const dailyChartData = {
     labels: safeDailyData.map((d) => d.date),

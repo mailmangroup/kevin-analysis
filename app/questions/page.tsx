@@ -378,8 +378,8 @@ export default function QuestionsPage() {
     if (val === 'yesterday') {
         start = subDays(today, 1)
         end = subDays(today, 1)
-    } else if (val === 'last4') {
-        start = subDays(today, 4)
+    } else if (val === 'last3') {
+        start = subDays(today, 3)
         end = today
     } else if (val === 'last7') {
         start = subDays(today, 7)
@@ -483,7 +483,7 @@ export default function QuestionsPage() {
                    value={quickSelect}
                  >
                    <option value="yesterday">Yesterday</option>
-                   <option value="last4">Last 4 Days</option>
+                   <option value="last3">Last 3 Days</option>
                    <option value="last7">Last 7 Days</option>
                    <option value="last30">Last 30 Days</option>
                    <option value="custom">Custom Range</option>

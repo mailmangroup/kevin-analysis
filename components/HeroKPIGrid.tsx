@@ -1,7 +1,7 @@
 'use client'
 
 import { HeroKPICard } from './HeroKPICard'
-import { Users, MessageSquare, FileText, Sparkles } from 'lucide-react'
+import { Users, MessageSquare, FileText, Sparkles, Video, MessageCircle, Image as ImageIcon, Search, BarChart2, HelpCircle } from 'lucide-react'
 
 interface MetricData {
   dau?: number
@@ -24,6 +24,16 @@ interface HeroKPIGridProps {
   metrics: MetricData[]
   previousMetrics?: MetricData[]
   mode?: 'count' | 'users'
+}
+
+const getCategoryIcon = (category: string) => {
+  const normalized = category.toLowerCase()
+  if (normalized.includes('chat')) return <MessageCircle className="w-5 h-5" />
+  if (normalized.includes('video')) return <Video className="w-5 h-5" />
+  if (normalized.includes('image')) return <ImageIcon className="w-5 h-5" />
+  if (normalized.includes('search')) return <Search className="w-5 h-5" />
+  if (normalized.includes('analysis')) return <BarChart2 className="w-5 h-5" />
+  return <HelpCircle className="w-5 h-5" />
 }
 
 export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKPIGridProps) {
@@ -166,8 +176,8 @@ export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKP
                   value={sub.current}
                   change={change}
                   changeLabel="vs previous period"
-                  // Using a generic icon for subcategories or specific if known
-                  icon={<div className="w-2 h-2 rounded-full bg-primary-400" />} 
+                  // Using specific icons based on category name
+                  icon={getCategoryIcon(sub.name)}
                   index={i + 4}
                 />
               )

@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users } from 'lucide-react'
+import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3 } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/analysis', label: 'Analysis', icon: BarChart3 },
   { href: '/questions', label: 'Questions', icon: HelpCircle },
   { href: '/cost', label: 'Cost', icon: DollarSign },
   { href: '/retention', label: 'Retention', icon: Users },

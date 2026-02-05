@@ -9,6 +9,8 @@ import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { HeroKPIGrid } from '@/components/HeroKPIGrid'
 import { DashboardCharts } from '@/components/DashboardCharts'
+import { MetricModeToggle } from '@/components/MetricModeToggle'
+import { TopLists } from '@/components/TopLists'
 import { Calendar, Users } from 'lucide-react'
 
 // Reuse MetricData from HeroKPIGrid
@@ -184,35 +186,6 @@ export default function AnalysisPage() {
                 onEndDateChange={(date) => handleDateSelect(dateRange.startDate, date)}
               />
             </div>
-            {/* Metric Mode Slider */}
-            <div className="lg:col-span-12 mt-6 pt-6 border-t border-slate-100">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">Metric Mode</span>
-                <div className="bg-slate-100 p-1 rounded-lg inline-flex relative">
-                  <div 
-                    className={`absolute inset-y-1 w-1/2 bg-white rounded-md shadow-sm transition-all duration-300 ease-out ${
-                      metricMode === 'users' ? 'translate-x-full left-[-4px]' : 'left-1'
-                    }`}
-                  />
-                  <button
-                    onClick={() => setMetricMode('count')}
-                    className={`relative z-10 px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      metricMode === 'count' ? 'text-primary-600' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Total Counts
-                  </button>
-                  <button
-                    onClick={() => setMetricMode('users')}
-                    className={`relative z-10 px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      metricMode === 'users' ? 'text-primary-600' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Unique Users
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -227,12 +200,27 @@ export default function AnalysisPage() {
           </div>
         ) : (
           <>
+            {/* Feature Usage Header & Metric Mode */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">Feature Usage</h2>
+              <MetricModeToggle mode={metricMode} onChange={setMetricMode} />
+            </div>
+
             {/* KPI Cards with Comparison */}
             <div className="mb-10">
               <HeroKPIGrid
                 metrics={metrics}
                 previousMetrics={previousMetrics}
                 mode={metricMode}
+              />
+            </div>
+
+            {/* Top Performers */}
+            <div className="mb-10">
+              <TopLists 
+                days={duration} 
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
               />
             </div>
           </>

@@ -7,6 +7,7 @@ interface TopListCardProps {
   loading: boolean
   emptyText?: string
   getItemLabel: (item: TopItem) => string
+  isReportType?: boolean
 }
 
 export function TopListCard({ 
@@ -15,7 +16,8 @@ export function TopListCard({
   items, 
   loading, 
   emptyText = "No data available",
-  getItemLabel 
+  getItemLabel,
+  isReportType = false
 }: TopListCardProps) {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100 h-full">
@@ -31,16 +33,24 @@ export function TopListCard({
              </div>
            ))
         ) : items && items.length > 0 ? (
-          items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-sm group">
-              <span className="text-slate-600 truncate max-w-[70%] group-hover:text-slate-900 transition-colors">
-                {getItemLabel(item)}
-              </span>
-              <span className="font-medium text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md text-xs">
-                {item.count.toLocaleString()}
-              </span>
-            </div>
-          ))
+          items.map((item, i) => {
+            const displayCount = isReportType ? Math.round(item.count / 10) : item.count
+            return (
+              <div key={i} className="flex items-center justify-between text-sm group">
+                <span className="text-slate-600 truncate max-w-[70%] group-hover:text-slate-900 transition-colors">
+                  {getItemLabel(item)}
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md text-xs">
+                    {displayCount.toLocaleString()}
+                  </span>
+                  {isReportType && (
+                    <span className="text-[10px] text-slate-400 italic">estimated</span>
+                  )}
+                </div>
+              </div>
+            )
+          })
         ) : (
           <div className="text-sm text-slate-400 italic py-4 text-center">{emptyText}</div>
         )}

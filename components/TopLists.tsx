@@ -78,6 +78,7 @@ export function TopLists({ days, startDate, endDate }: TopListsProps) {
           items={topBrands} 
           loading={loadingBrands}
           getItemLabel={(item) => item.brand_name || item.brand_id || 'Unknown'}
+          isReportType={selectedType === 'report_generation'}
         />
 
         <TopListCard 
@@ -85,7 +86,12 @@ export function TopLists({ days, startDate, endDate }: TopListsProps) {
           icon="👤" 
           items={topUsers} 
           loading={loadingUsers}
-          getItemLabel={(item) => item.user_email || 'Unknown User'}
+          getItemLabel={(item) => {
+             const user = item.user_email || 'Unknown User'
+             const brand = item.brand_name || item.brand_id
+             return brand ? `${user} (${brand})` : user
+          }}
+          isReportType={selectedType === 'report_generation'}
         />
       </div>
     </div>

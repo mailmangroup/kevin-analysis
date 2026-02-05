@@ -22,7 +22,6 @@ interface TopListsProps {
 }
 
 const GENERATION_TYPES = [
-  { id: 'all', label: 'All Types' },
   { id: 'question_answering', label: 'Questions' },
   { id: 'report_generation', label: 'Reports' },
   { id: 'content_generation', label: 'Content' },
@@ -30,7 +29,7 @@ const GENERATION_TYPES = [
 
 export function TopLists({ days, startDate, endDate }: TopListsProps) {
   const { profile } = useUserStore()
-  const [selectedType, setSelectedType] = useState('all')
+  const [selectedType, setSelectedType] = useState('question_answering')
 
   const apiUrl = profile?.kawo_api_url
   
@@ -39,9 +38,8 @@ export function TopLists({ days, startDate, endDate }: TopListsProps) {
   if (startDate && endDate) {
     queryParams += `&start_date=${startDate}&end_date=${endDate}`
   }
-  if (selectedType !== 'all') {
-    queryParams += `&generation_type=${selectedType}`
-  }
+  // Always append generation_type since 'all' is no longer an option
+  queryParams += `&generation_type=${selectedType}`
 
   const fetcher = (url: string) => fetchWithAuth(url).then(res => {
     if (!res.ok) throw new Error('API error')

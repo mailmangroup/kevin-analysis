@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import { Info } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import { TimePeriodToggle } from '@/components/TimePeriodToggle'
 import { fetchWithAuth } from '@/lib/api'
@@ -17,6 +18,20 @@ import {
   Legend,
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
+
+const COST_ESTIMATION_NOTE = {
+  overview: 'We track token costs using Global Fixed Rates in Phoenix. Rates are calibrated to the "Thinking Mode" (Medium Context) pricing tier, our primary cost driver.',
+  configTitle: 'Per 1M tokens (USD)',
+  configItems: [
+    { model: 'qwen-max', rates: '$0.58 / $2.32', context: 'Medium Context (~32k–128k)' },
+    { model: 'qwen-plus', rates: '$0.11 / $1.15', context: 'Base/Medium (0–128k)' },
+  ],
+  limitations: [
+    'Non-thinking calls use the higher Thinking rate → reported cost may exceed actual bill.',
+    'Contexts >128k use a higher tier not reflected here.',
+    'Rates are USD; CNY↔USD is not real-time.',
+  ],
+}
 
 ChartJS.register(
   CategoryScale,
@@ -52,6 +67,65 @@ const periodToDays: Record<Period, number> = {
   '7D': 7,
   '30D': 30,
   '90D': 90,
+}
+
+function CostEstimationTooltip() {
+  const [open, setOpen] = useState(false)
+  const [hover, setHover] = useState(false)
+  const visible = open || hover
+
+  return (
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="inline-flex items-center justify-center rounded-full text-slate-400 hover:text-amber-600 focus:text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+        aria-label="How we estimate costs"
+      >
+        <Info className="h-4 w-4" />
+      </button>
+      {visible && (
+        <div
+          role="tooltip"
+          className="absolute left-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200/90 bg-white text-left shadow-xl shadow-slate-200/50 ring-1 ring-slate-900/5"
+        >
+          <div className="border-l-2 border-amber-400 bg-amber-50/60 px-3.5 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800/90">Cost estimation</p>
+          </div>
+          <div className="p-3.5 space-y-3.5">
+            <p className="text-xs leading-relaxed text-slate-600">{COST_ESTIMATION_NOTE.overview}</p>
+
+            <div className="border-t border-slate-100 pt-3">
+              <p className="text-[11px] font-semibold text-slate-700 mb-2">{COST_ESTIMATION_NOTE.configTitle}</p>
+              <ul className="space-y-1.5">
+                {COST_ESTIMATION_NOTE.configItems.map((item) => (
+                  <li key={item.model} className="text-xs text-slate-600 flex flex-wrap gap-x-1.5">
+                    <span className="font-medium text-slate-700">{item.model}:</span>
+                    <span className="text-amber-700">{item.rates}</span>
+                    <span className="text-slate-500">({item.context})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-slate-100 pt-3">
+              <p className="text-[11px] font-semibold text-slate-700 mb-2">Limitations</p>
+              <ul className="space-y-1.5 list-disc list-inside text-xs text-slate-600 marker:text-amber-500/70">
+                {COST_ESTIMATION_NOTE.limitations.map((lim, i) => (
+                  <li key={i} className="leading-relaxed pl-0.5">{lim}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </span>
+  )
 }
 
 export default function CostPage() {
@@ -164,8 +238,13 @@ export default function CostPage() {
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
                 Cost <span className="text-gradient">Analysis</span>
               </h1>
-              <p className="mt-3 text-sm text-slate-500">
-                Track token usage and estimated costs over time
+              <p className="mt-3 text-sm text-slate-500 flex items-center gap-1.5 flex-wrap">
+                <span>Track token usage and estimated costs over time.</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-slate-400">·</span>
+                  <span className="text-slate-500">Phoenix fixed rates (Medium Context)</span>
+                  <CostEstimationTooltip />
+                </span>
               </p>
             </div>
             <div className="mt-5 md:mt-0">

@@ -7,7 +7,7 @@ import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { subDays, format } from 'date-fns'
-import { ChevronDown, ChevronRight, Download } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -49,20 +49,18 @@ interface Question {
   video_analysis_span_id?: string
 }
 
-interface BrandGroup {
+interface BrandSummary {
   brand_id: string
-  brand_name: string
+  brand_name?: string
   count: number
-  questions: Question[]
 }
 
 interface Stats {
   daily_counts: { date_beijing: string; count: number }[]
   daily_counts_by_subcategory?: { date_beijing: string; sub_category: string; count: number }[]
-  top_brands: { brand_id: string; brand_name?: string; count: number }[]
+  top_brands: BrandSummary[]
   top_users: { user_email: string; count: number }[]
   sub_categories: { sub_category: string; count: number; percentage: number }[]
-  grouped_questions?: BrandGroup[]
 }
 
 const fetcher = (url: string) => fetchWithAuth(url).then(res => {
@@ -71,60 +69,6 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   }
   return res.json()
 })
-
-// Generate markdown content from grouped questions
-function generateMarkdown(groupedQuestions: BrandGroup[], startDate: string, endDate: string): string {
-  const lines: string[] = []
-
-  lines.push('# Questions Analysis Report')
-  lines.push('')
-  lines.push(`**Date Range:** ${startDate} to ${endDate}`)
-  lines.push(`**Generated:** ${new Date().toLocaleString('zh-CN')}`)
-  lines.push(`**Total Brands:** ${groupedQuestions.length}`)
-  lines.push(`**Total Questions:** ${groupedQuestions.reduce((sum, g) => sum + g.count, 0)}`)
-  lines.push('')
-  lines.push('---')
-  lines.push('')
-
-  for (const group of groupedQuestions) {
-    lines.push(`## ${group.brand_name}`)
-    lines.push('')
-    lines.push(`**Brand ID:** \`${group.brand_id}\``)
-    lines.push(`**Question Count:** ${group.count}`)
-    lines.push('')
-
-    for (const q of group.questions) {
-      lines.push(`### Question`)
-      lines.push('')
-      lines.push(`- **Time:** ${new Date(q.start_time).toLocaleString('zh-CN')}`)
-      lines.push(`- **User:** ${q.user_email}`)
-      lines.push(`- **Category:** ${q.sub_category || 'chat'}`)
-      lines.push('')
-      lines.push('**Q:**')
-      lines.push('')
-      lines.push(`> ${q.question.replace(/\n/g, '\n> ')}`)
-      lines.push('')
-      lines.push('**A:**')
-      lines.push('')
-      lines.push(q.answer || '_(No answer)_')
-      lines.push('')
-
-      if (q.tool_calls && q.tool_calls.length > 0) {
-        lines.push('**Tools Used:**')
-        lines.push('')
-        for (const tool of q.tool_calls) {
-          lines.push(`- \`${tool.name}\`${tool.args ? `: ${JSON.stringify(tool.args)}` : ''}`)
-        }
-        lines.push('')
-      }
-
-      lines.push('---')
-      lines.push('')
-    }
-  }
-
-  return lines.join('\n')
-}
 
 // Centralized color mapping for sub-categories - warm color palette
 const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: string }> = {
@@ -241,98 +185,193 @@ function FollowUpQuestions({ spanId, apiUrl }: { spanId: string; apiUrl: string 
   )
 }
 
-function BrandQuestionGroup({ group, apiUrl }: { group: BrandGroup; apiUrl: string }) {
+const PAGE_SIZE = 50
+
+function BrandQuestionGroup({
+  brand,
+  apiUrl,
+  startDate,
+  endDate,
+  subCategory,
+}: {
+  brand: BrandSummary
+  apiUrl: string
+  startDate: string
+  endDate: string
+  subCategory: string
+}) {
   const [isOpen, setIsOpen] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const [allQuestions, setAllQuestions] = useState<Question[]>([])
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+
+  const params = new URLSearchParams({
+    brand_id: brand.brand_id,
+    generation_type: 'question_answering',
+    limit: String(PAGE_SIZE),
+    offset: String(offset),
+  })
+  if (startDate) params.append('start_date', startDate)
+  if (endDate) params.append('end_date', endDate)
+  if (subCategory && subCategory !== 'all') params.append('sub_category', subCategory)
+
+  const shouldFetch = isOpen
+  const { data: page, error: pageError, isLoading } = useSWR<Question[]>(
+    shouldFetch ? `${apiUrl}/phoenix/questions?${params.toString()}` : null,
+    fetcher
+  )
+
+  useEffect(() => {
+    if (page !== undefined) {
+      if (offset === 0) {
+        setAllQuestions(page)
+      } else if (page.length > 0) {
+        setAllQuestions(prev => [...prev, ...page])
+      }
+      setHasLoadedOnce(true)
+    }
+  }, [page, offset])
+
+  const handleOpen = () => {
+    if (!isOpen) {
+      setOffset(0)
+      setAllQuestions([])
+      setHasLoadedOnce(false)
+    }
+    setIsOpen(!isOpen)
+  }
+
+  const handleLoadMore = () => {
+    setOffset(prev => prev + PAGE_SIZE)
+  }
+
+  const hasMore = page !== undefined && page.length === PAGE_SIZE
 
   return (
     <div className="border-b border-slate-100 last:border-b-0">
-      <div 
+      <div
         className={`px-6 py-4 flex justify-between items-center cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleOpen}
       >
         <div className="flex items-center gap-3">
           <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-slate-200 text-slate-600' : 'bg-slate-100 text-slate-400'}`}>
-             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </div>
           <div>
-             <span className="font-semibold text-slate-900 block">{group.brand_name}</span>
-             <span className="text-xs text-slate-400 font-mono">{group.brand_id}</span>
+            <span className="font-semibold text-slate-900 block">{brand.brand_name || brand.brand_id}</span>
+            <span className="text-xs text-slate-400 font-mono">{brand.brand_id}</span>
           </div>
         </div>
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
-          {group.count} questions
+          {brand.count} questions
         </span>
       </div>
-      
+
       {isOpen && (
         <div className="bg-slate-50/50 border-t border-slate-100 overflow-x-auto">
-          <table className="w-full min-w-[800px] divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Question & Answer</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-56">Tools</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
-              {group.questions.map((q) => (
-                <tr key={q.span_id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-900 align-top">
-                    <div className="mb-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-primary-600">Q:</span>
-                        <span className="text-xs text-slate-500 font-mono">
-                          {new Date(q.start_time).toLocaleString('zh-CN')}
-                        </span>
-                        <span
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm"
-                          style={{
-                            backgroundColor: getSubCategoryColor(q.sub_category || 'chat').bg,
-                            color: getSubCategoryColor(q.sub_category || 'chat').solid,
-                            border: `1px solid ${getSubCategoryColor(q.sub_category || 'chat').border}`
-                          }}
-                        >
-                          {q.sub_category || 'chat'}
-                        </span>
-                        <span className="text-xs text-slate-600 font-medium">
-                          {q.user_email}
-                        </span>
-                      </div>
-                      <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">
-                        {q.question}
-                      </div>
-                    </div>
-                    <div className="text-slate-600 text-xs">
-                      <span className="font-bold text-amber-600 block mb-1">A: </span>
-                      <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
-                        {q.answer || '(No answer)'}
-                      </div>
-                    </div>
-                    {q.sub_category === 'video_analysis' && (
-                      <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 align-top">
-                    {q.tool_calls && q.tool_calls.length > 0 ? (
-                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                        {q.tool_calls.map((tool, idx) => (
-                          <div key={idx} className="bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-100 text-xs">
-                            <div className="font-semibold text-slate-700 mb-0.5">{tool.name}</div>
-                            {tool.args && (
-                              <div className="text-slate-400 font-mono text-[10px] break-all">
-                                {JSON.stringify(tool.args)}
-                              </div>
-                            )}
+          {pageError && (
+            <div className="p-6 text-sm text-rose-600 bg-rose-50">Failed to load questions.</div>
+          )}
+          {isLoading && allQuestions.length === 0 && (
+            <div className="p-6 text-sm text-slate-500 animate-pulse">Loading questions...</div>
+          )}
+          {hasLoadedOnce && allQuestions.length === 0 && !isLoading && (
+            <div className="p-6 text-sm text-slate-400 italic">No questions found for this brand in the selected period.</div>
+          )}
+          {allQuestions.length > 0 && (
+            <>
+              <table className="w-full min-w-[800px] divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Question & Answer</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-56">Tools</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-100">
+                  {allQuestions.map((q) => (
+                    <tr key={q.span_id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 text-sm text-slate-900 align-top">
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-primary-600">Q:</span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              {new Date(q.start_time).toLocaleString('zh-CN')}
+                            </span>
+                            <span
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm"
+                              style={{
+                                backgroundColor: getSubCategoryColor(q.sub_category || 'chat').bg,
+                                color: getSubCategoryColor(q.sub_category || 'chat').solid,
+                                border: `1px solid ${getSubCategoryColor(q.sub_category || 'chat').border}`
+                              }}
+                            >
+                              {q.sub_category || 'chat'}
+                            </span>
+                            <span className="text-xs text-slate-600 font-medium">
+                              {q.user_email}
+                            </span>
                           </div>
-                        ))}
-                      </div>
+                          <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">
+                            {q.question}
+                          </div>
+                        </div>
+                        <div className="text-slate-600 text-xs">
+                          <span className="font-bold text-amber-600 block mb-1">A: </span>
+                          <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar">
+                            {q.answer || '(No answer)'}
+                          </div>
+                        </div>
+                        {q.sub_category === 'video_analysis' && (
+                          <FollowUpQuestions spanId={q.span_id} apiUrl={apiUrl} />
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500 align-top">
+                        {q.tool_calls && q.tool_calls.length > 0 ? (
+                          <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                            {q.tool_calls.map((tool, idx) => (
+                              <div key={idx} className="bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-100 text-xs">
+                                <div className="font-semibold text-slate-700 mb-0.5">{tool.name}</div>
+                                {tool.args && (
+                                  <div className="text-slate-400 font-mono text-[10px] break-all">
+                                    {JSON.stringify(tool.args)}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 italic text-xs">No tools used</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {(hasMore || isLoading) && (
+                <div className="px-6 py-4 border-t border-slate-100 bg-white">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={isLoading}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700 disabled:text-slate-400 transition-colors flex items-center gap-2"
+                  >
+                    {isLoading ? (
+                      <span className="animate-pulse">Loading...</span>
                     ) : (
-                      <span className="text-slate-300 italic text-xs">No tools used</span>
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Load more ({allQuestions.length} of {brand.count} shown)
+                      </>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </button>
+                </div>
+              )}
+              {!hasMore && !isLoading && allQuestions.length > 0 && (
+                <div className="px-6 py-3 border-t border-slate-100 bg-white">
+                  <span className="text-xs text-slate-400">All {allQuestions.length} questions loaded</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -702,52 +741,37 @@ export default function QuestionsPage() {
           </div>
         )}
 
-        {/* Grouped Questions Table */}
+        {/* Questions by Brand Table */}
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden mt-8">
           <div className="px-6 py-5 border-b border-slate-200 bg-white flex justify-between items-center">
             <h3 className="text-lg font-semibold text-slate-900">Questions by Brand</h3>
-            <div className="flex items-center gap-3">
-              {stats?.grouped_questions && stats.grouped_questions.length > 0 && (
-                <button
-                  onClick={() => {
-                    const markdown = generateMarkdown(stats.grouped_questions!, startDate, endDate)
-                    const blob = new Blob([markdown], { type: 'text/markdown' })
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `questions_by_brand_${startDate}_${endDate}.md`
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                    document.body.removeChild(a)
-                  }}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Download MD
-                </button>
-              )}
-              {stats?.grouped_questions && (
-                <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                    {stats.grouped_questions.length} Brands
-                </span>
-              )}
-            </div>
+            {stats?.top_brands && (
+              <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                {stats.top_brands.length} Brands
+              </span>
+            )}
           </div>
           {statsLoading ? (
             <div className="p-12 text-center text-slate-500 animate-pulse">Loading questions...</div>
-          ) : stats?.grouped_questions && stats.grouped_questions.length > 0 ? (
+          ) : stats?.top_brands && stats.top_brands.length > 0 ? (
             <div>
-              {stats.grouped_questions.map((group) => (
-                <BrandQuestionGroup key={group.brand_id} group={group} apiUrl={apiUrl || ''} />
+              {stats.top_brands.map((brand) => (
+                <BrandQuestionGroup
+                  key={brand.brand_id}
+                  brand={brand}
+                  apiUrl={apiUrl || ''}
+                  startDate={startDate}
+                  endDate={endDate}
+                  subCategory={subCategory}
+                />
               ))}
             </div>
           ) : (
             <div className="p-12 text-center text-slate-500 flex flex-col items-center">
-                <svg className="w-12 h-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>No questions found for the selected period.</p>
+              <svg className="w-12 h-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>No questions found for the selected period.</p>
             </div>
           )}
         </div>

@@ -265,27 +265,27 @@ export default function RetentionPage() {
         .sort((a, b) => (b.cohort || '').localeCompare(a.cohort || ''))
   }, [rawData])
 
+  const globalLatestPeriod = useMemo(() => {
+    if (!Array.isArray(rawData) || rawData.length === 0) return ''
+    let latestPeriod = ''
+    rawData.forEach(r => {
+      if (r?.activity_period && r.activity_period > latestPeriod) latestPeriod = r.activity_period
+    })
+    return latestPeriod
+  }, [rawData])
+
   // Update maxPeriods separately to avoid side-effect warnings
   useEffect(() => {
-     if (!Array.isArray(rawData) || rawData.length === 0) return
-
-     // Find the latest activity period across ALL data
-     // This ensures that even if a specific cohort stopped having activity,
-     // we still show columns up to the current date (represented by latest activity)
-     let globalLatestPeriod = ''
-     rawData.forEach(r => {
-        if (r?.activity_period && r.activity_period > globalLatestPeriod) globalLatestPeriod = r.activity_period
-     })
+     if (!Array.isArray(rawData) || rawData.length === 0 || !globalLatestPeriod) return
 
      let maxIdx = 0
      rawData.forEach(record => {
         if (!record?.cohort) return
-        // Calculate diff between cohort and the GLOBAL latest period
         const diff = getDiff(record.cohort, globalLatestPeriod, period)
         if (diff > maxIdx) maxIdx = diff
      })
      setMaxPeriods(maxIdx)
-  }, [rawData, period])
+  }, [rawData, period, globalLatestPeriod])
 
   // Helper to get color intensity based on percentage - warm amber palette
   const getBgColor = (percentage: number) => {
@@ -545,16 +545,17 @@ export default function RetentionPage() {
                       {cohort.total_users}
                     </td>
                     {columns.map((col) => {
-                      // Convert column index to actual period string
                       const periodKey = addPeriods(cohort.cohort, col, period)
-                      const retained = cohort.periods[periodKey] || 0
+                      const isFuturePeriod = globalLatestPeriod ? getDiff(periodKey, globalLatestPeriod, period) < 0 : true
+                      const hasPeriodData = Object.prototype.hasOwnProperty.call(cohort.periods, periodKey)
+                      const retained = hasPeriodData ? cohort.periods[periodKey] : 0
                       const percentage = cohort.total_users > 0 ? Math.round((retained / cohort.total_users) * 100) : 0
-                      const bgColor = retained > 0 ? getBgColor(percentage) : 'bg-white'
-                      const textColor = retained > 0 ? '' : 'text-slate-300'
+                      const bgColor = !isFuturePeriod && retained > 0 ? getBgColor(percentage) : 'bg-white'
+                      const textColor = !isFuturePeriod && retained > 0 ? '' : 'text-slate-300'
 
                       return (
                         <td key={col} className={`px-2 py-4 whitespace-nowrap text-xs text-center border-r border-white/10 ${bgColor} ${textColor}`}>
-                          {retained > 0 ? `${percentage}%` : '-'}
+                          {isFuturePeriod ? '-' : `${percentage}%`}
                         </td>
                       )
                     })}

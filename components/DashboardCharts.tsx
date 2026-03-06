@@ -137,6 +137,8 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           drawTicks: true,
           color: (context: any) => {
             if (groupBy === 'month') return 'transparent'
+            // Ensure context.tick exists before accessing its value
+            if (!context.tick) return 'transparent'
             const index = context.tick.value
             if (index === 0) return 'transparent'
             
@@ -155,6 +157,7 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           font: (context: any) => {
             const base = { size: 11 }
             if (groupBy === 'month') return base
+            if (!context.tick) return base
             
             const index = context.tick.value
             const currentLabel = groupedLabels[index]
@@ -168,6 +171,7 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           },
           color: (context: any) => {
             if (groupBy === 'month') return '#94a3b8'
+            if (!context.tick) return '#94a3b8'
             const index = context.tick.value
             const currentLabel = groupedLabels[index]
             const prevLabel = groupedLabels[index - 1]

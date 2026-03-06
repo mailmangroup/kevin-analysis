@@ -468,23 +468,23 @@ export default function QuestionsPage() {
         start = subDays(today, 1)
         end = subDays(today, 1)
     } else if (val === 'last3') {
-        start = subDays(today, 2)
-        end = today
+        start = subDays(today, 3)
+        end = subDays(today, 1)
     } else if (val === 'last7') {
-        start = subDays(today, 6)
-        end = today
+        start = subDays(today, 7)
+        end = subDays(today, 1)
     } else if (val === 'last14') {
-        start = subDays(today, 13)
-        end = today
+        start = subDays(today, 14)
+        end = subDays(today, 1)
     } else if (val === 'last30') {
-        start = subDays(today, 29)
-        end = today
+        start = subDays(today, 30)
+        end = subDays(today, 1)
     } else if (val === 'last60') {
-        start = subDays(today, 59)
-        end = today
+        start = subDays(today, 60)
+        end = subDays(today, 1)
     } else if (val === 'last90') {
-        start = subDays(today, 89)
-        end = today
+        start = subDays(today, 90)
+        end = subDays(today, 1)
     } else if (val === 'thisMonth') {
         start = startOfMonth(today)
         end = today
@@ -519,6 +519,14 @@ export default function QuestionsPage() {
   )
 
   const statsLoading = !stats && !statsError
+  const availableDayCount = new Set(stats?.daily_counts?.map(d => d.date_beijing) || []).size
+  const canGroupByWeek = availableDayCount >= 7
+  const canGroupByMonth = availableDayCount >= 28
+
+  useEffect(() => {
+    if (groupBy === 'week' && !canGroupByWeek) setGroupBy('day')
+    if (groupBy === 'month' && !canGroupByMonth) setGroupBy('day')
+  }, [groupBy, canGroupByWeek, canGroupByMonth])
 
   const chartOptions = {
     responsive: true,
@@ -565,7 +573,7 @@ export default function QuestionsPage() {
               Questions <span className="text-gradient">Analysis</span>
             </h1>
             <p className="mt-3 text-sm text-slate-500">
-              Analyzing question_answering queries broken down by sub-category • All dates in Beijing Time (UTC+8)
+              Analyzing question_answering queries broken down by sub-category • All dates in Beijing Time (UTC+8) • Data available up to yesterday
             </p>
           </div>
         </div>
@@ -589,12 +597,12 @@ export default function QuestionsPage() {
                  >
                    <option value="today">Today</option>
                    <option value="yesterday">Yesterday</option>
-                   <option value="last3">Last 3 Days</option>
-                   <option value="last7">Last 7 Days</option>
-                   <option value="last14">Last 14 Days</option>
-                   <option value="last30">Last 30 Days</option>
-                   <option value="last60">Last 60 Days</option>
-                   <option value="last90">Last 90 Days</option>
+                   <option value="last3">Last 3 Days (up to yesterday)</option>
+                   <option value="last7">Last 7 Days (up to yesterday)</option>
+                   <option value="last14">Last 14 Days (up to yesterday)</option>
+                   <option value="last30">Last 30 Days (up to yesterday)</option>
+                   <option value="last60">Last 60 Days (up to yesterday)</option>
+                   <option value="last90">Last 90 Days (up to yesterday)</option>
                    <option value="thisMonth">This Month</option>
                    <option value="lastMonth">Last Month</option>
                    <option value="custom">Custom Range</option>
@@ -687,14 +695,25 @@ export default function QuestionsPage() {
                 <SegmentedControl
                   options={[
                     { value: 'day', label: 'Day' },
-                    { value: 'week', label: 'Week' },
-                    { value: 'month', label: 'Month' },
+                    {
+                      value: 'week',
+                      label: 'Week (Mon-Sun)',
+                      disabled: !canGroupByWeek,
+                      title: canGroupByWeek ? 'Grouped by calendar week (Monday-Sunday)' : 'Need at least 7 days of data'
+                    },
+                    {
+                      value: 'month',
+                      label: 'Month (Calendar)',
+                      disabled: !canGroupByMonth,
+                      title: canGroupByMonth ? 'Grouped by calendar month' : 'Need at least 28 days of data'
+                    },
                   ]}
                   value={groupBy}
                   onChange={(v) => setGroupBy(v as GroupBy)}
                   size="sm"
                 />
               </div>
+              <p className="text-[11px] text-slate-400 -mt-4 mb-4">Calendar buckets: week starts Monday, month is calendar month.</p>
               <div className="h-72">
                 <Bar
                   data={(() => {

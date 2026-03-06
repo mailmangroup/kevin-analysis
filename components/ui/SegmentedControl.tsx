@@ -1,7 +1,7 @@
 'use client'
 
 interface SegmentedControlProps<T extends string> {
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; disabled?: boolean; title?: string }[]
   value: T
   onChange: (value: T) => void
   size?: 'sm' | 'md'
@@ -18,13 +18,17 @@ export function SegmentedControl<T extends string>({
       {options.map((option) => (
         <button
           key={option.value}
-          onClick={() => onChange(option.value)}
+          onClick={() => !option.disabled && onChange(option.value)}
+          disabled={option.disabled}
+          title={option.title}
           className={`
             relative font-semibold rounded-lg transition-all duration-200 whitespace-nowrap
             ${size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'}
             ${value === option.value
               ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md'
-              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              : option.disabled
+                ? 'text-slate-300 cursor-not-allowed'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
             }
           `}
         >

@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -78,6 +80,15 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
     .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
 
   const grouped = groupMetrics(rawMetrics, groupBy)
+  const availableDayCount = new Set(rawMetrics.map(m => m.date_beijing)).size
+  const canGroupByWeek = availableDayCount >= 7
+  const canGroupByMonth = availableDayCount >= 28
+
+  useEffect(() => {
+    if (!onGroupByChange) return
+    if (groupBy === 'week' && !canGroupByWeek) onGroupByChange('day')
+    if (groupBy === 'month' && !canGroupByMonth) onGroupByChange('day')
+  }, [groupBy, canGroupByWeek, canGroupByMonth, onGroupByChange])
 
   // Sort costs by month ascending
   const sortedCosts = [...(Array.isArray(costs) ? costs : [])]
@@ -115,10 +126,20 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
     }
   }
 
-  const groupByOptions: { value: GroupBy; label: string }[] = [
+  const groupByOptions: { value: GroupBy; label: string; disabled?: boolean; title?: string }[] = [
     { value: 'day', label: 'Day' },
-    { value: 'week', label: 'Week' },
-    { value: 'month', label: 'Month' },
+    {
+      value: 'week',
+      label: 'Week (Mon-Sun)',
+      disabled: !canGroupByWeek,
+      title: canGroupByWeek ? 'Grouped by calendar week (Monday-Sunday)' : 'Need at least 7 days of data',
+    },
+    {
+      value: 'month',
+      label: 'Month (Calendar)',
+      disabled: !canGroupByMonth,
+      title: canGroupByMonth ? 'Grouped by calendar month' : 'Need at least 28 days of data',
+    },
   ]
 
   return (
@@ -137,12 +158,15 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
               </div>
             </div>
             {onGroupByChange ? (
-              <SegmentedControl
-                options={groupByOptions}
-                value={groupBy}
-                onChange={(v) => onGroupByChange(v as GroupBy)}
-                size="sm"
-              />
+              <div className="flex flex-col items-end gap-1">
+                <SegmentedControl
+                  options={groupByOptions}
+                  value={groupBy}
+                  onChange={(v) => onGroupByChange(v as GroupBy)}
+                  size="sm"
+                />
+                <p className="text-[11px] text-slate-400">Calendar buckets: week starts Monday, month is calendar month.</p>
+              </div>
             ) : (
               <span className="text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1.5 rounded-full ring-1 ring-primary-500/10">
                 Trend

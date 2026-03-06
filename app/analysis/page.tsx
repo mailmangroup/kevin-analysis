@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { DateRangePicker } from '@/components/DateRangePicker'
-import { subDays, format, sub } from 'date-fns'
+import { subDays, format, startOfMonth } from 'date-fns'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
@@ -45,6 +45,9 @@ export default function AnalysisPage() {
   // State for metric mode (count vs unique users)
   const [metricMode, setMetricMode] = useState<'count' | 'users'>('count')
 
+  // State for chart grouping
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day')
+
   // Calculate previous period range for comparison
   const start = new Date(dateRange.startDate)
   const end = new Date(dateRange.endDate)
@@ -85,37 +88,43 @@ export default function AnalysisPage() {
     setQuickSelect(value)
     
     const today = new Date()
-    let start = new Date()
-    
+
     switch (value) {
-      case 'yesterday':
-        start = subDays(today, 1)
-        setDateRange({
-          startDate: format(start, 'yyyy-MM-dd'),
-          endDate: format(start, 'yyyy-MM-dd')
-        })
+      case 'today':
+        setDateRange({ startDate: format(today, 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
         break
+      case 'yesterday': {
+        const d = subDays(today, 1)
+        setDateRange({ startDate: format(d, 'yyyy-MM-dd'), endDate: format(d, 'yyyy-MM-dd') })
+        break
+      }
       case 'last3':
-        start = subDays(today, 2) // today + 2 days back = 3 days
-        setDateRange({
-          startDate: format(start, 'yyyy-MM-dd'),
-          endDate: format(today, 'yyyy-MM-dd')
-        })
+        setDateRange({ startDate: format(subDays(today, 2), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
         break
       case 'last7':
-        start = subDays(today, 6)
-        setDateRange({
-          startDate: format(start, 'yyyy-MM-dd'),
-          endDate: format(today, 'yyyy-MM-dd')
-        })
+        setDateRange({ startDate: format(subDays(today, 6), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
+        break
+      case 'last14':
+        setDateRange({ startDate: format(subDays(today, 13), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
         break
       case 'last30':
-        start = subDays(today, 29)
-        setDateRange({
-          startDate: format(start, 'yyyy-MM-dd'),
-          endDate: format(today, 'yyyy-MM-dd')
-        })
+        setDateRange({ startDate: format(subDays(today, 29), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
         break
+      case 'last60':
+        setDateRange({ startDate: format(subDays(today, 59), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
+        break
+      case 'last90':
+        setDateRange({ startDate: format(subDays(today, 89), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
+        break
+      case 'thisMonth':
+        setDateRange({ startDate: format(startOfMonth(today), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') })
+        break
+      case 'lastMonth': {
+        const firstOfThisMonth = startOfMonth(today)
+        const lastMonthEnd = subDays(firstOfThisMonth, 1)
+        setDateRange({ startDate: format(startOfMonth(lastMonthEnd), 'yyyy-MM-dd'), endDate: format(lastMonthEnd, 'yyyy-MM-dd') })
+        break
+      }
       // custom is handled by DateRangePicker
     }
   }
@@ -159,10 +168,16 @@ export default function AnalysisPage() {
                    onChange={handleRangeChange}
                    value={quickSelect}
                  >
+                   <option value="today">Today</option>
                    <option value="yesterday">Yesterday</option>
                    <option value="last3">Last 3 Days</option>
                    <option value="last7">Last 7 Days</option>
+                   <option value="last14">Last 14 Days</option>
                    <option value="last30">Last 30 Days</option>
+                   <option value="last60">Last 60 Days</option>
+                   <option value="last90">Last 90 Days</option>
+                   <option value="thisMonth">This Month</option>
+                   <option value="lastMonth">Last Month</option>
                    <option value="custom">Custom Range</option>
                  </select>
                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -214,6 +229,13 @@ export default function AnalysisPage() {
                 mode={metricMode}
               />
             </div>
+
+            {/* Trend Charts */}
+            <DashboardCharts
+              metrics={metrics}
+              groupBy={groupBy}
+              onGroupByChange={setGroupBy}
+            />
 
             {/* Top Performers */}
             <div className="mb-10">

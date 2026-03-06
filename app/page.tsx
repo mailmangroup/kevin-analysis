@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { Navbar } from '@/components/Navbar'
 import { DashboardCharts } from '@/components/DashboardCharts'
@@ -27,6 +27,7 @@ const periodToDays: Record<Period, number> = {
 export default function Home() {
   const { profile, fetchProfile } = useUserStore()
   const { period, setPeriod } = useTimePeriodStore()
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day')
 
   useEffect(() => {
     fetchProfile()
@@ -130,7 +131,7 @@ export default function Home() {
             </div>
 
             {/* Charts */}
-            <DashboardCharts metrics={metrics} types={types} costs={costs} />
+            <DashboardCharts metrics={metrics} types={types} costs={costs} groupBy={groupBy} onGroupByChange={setGroupBy} />
           </>
         )}
       </main>

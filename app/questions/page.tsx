@@ -6,7 +6,8 @@ import { DateRangePicker } from '@/components/DateRangePicker'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
-import { subDays, format } from 'date-fns'
+import { subDays, format, startOfWeek, startOfMonth, parseISO } from 'date-fns'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import {
   Chart as ChartJS,
@@ -102,6 +103,51 @@ const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: s
 // Helper function to get color for a sub-category
 function getSubCategoryColor(subCategory: string): { bg: string; border: string; solid: string } {
   return SUB_CATEGORY_COLORS[subCategory] || SUB_CATEGORY_COLORS['other']
+}
+
+type GroupBy = 'day' | 'week' | 'month'
+
+function getGroupKey(dateStr: string, groupBy: GroupBy): string {
+  const d = parseISO(dateStr)
+  if (groupBy === 'week') {
+    const weekStart = startOfWeek(d, { weekStartsOn: 1 })
+    return format(weekStart, 'yyyy-MM-dd')
+  }
+  if (groupBy === 'month') {
+    return format(startOfMonth(d), 'yyyy-MM')
+  }
+  return dateStr
+}
+
+function groupDailyCounts(
+  daily: { date_beijing: string; count: number }[],
+  groupBy: GroupBy
+): { label: string; count: number }[] {
+  const map = new Map<string, number>()
+  for (const d of daily) {
+    const key = getGroupKey(d.date_beijing, groupBy)
+    map.set(key, (map.get(key) ?? 0) + d.count)
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, count]) => ({ label, count }))
+}
+
+function groupDailyCountsBySubcategory(
+  daily: { date_beijing: string; sub_category: string; count: number }[],
+  groupBy: GroupBy
+): { label: string; sub_category: string; count: number }[] {
+  const map = new Map<string, number>()
+  for (const d of daily) {
+    const key = `${getGroupKey(d.date_beijing, groupBy)}||${d.sub_category}`
+    map.set(key, (map.get(key) ?? 0) + d.count)
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, count]) => {
+      const [label, sub_category] = key.split('||')
+      return { label, sub_category, count }
+    })
 }
 
 function FollowUpQuestions({ spanId, apiUrl }: { spanId: string; apiUrl: string }) {
@@ -399,6 +445,7 @@ export default function QuestionsPage() {
     return format(subDays(new Date(), 1), 'yyyy-MM-dd')
   })
   const [subCategory, setSubCategory] = useState('all')
+  const [groupBy, setGroupBy] = useState<GroupBy>('day')
 
   useEffect(() => {
     fetchProfile()
@@ -414,18 +461,37 @@ export default function QuestionsPage() {
     let start = today
     let end = today
     
-    if (val === 'yesterday') {
+    if (val === 'today') {
+        start = today
+        end = today
+    } else if (val === 'yesterday') {
         start = subDays(today, 1)
         end = subDays(today, 1)
     } else if (val === 'last3') {
-        start = subDays(today, 3)
+        start = subDays(today, 2)
         end = today
     } else if (val === 'last7') {
-        start = subDays(today, 7)
+        start = subDays(today, 6)
+        end = today
+    } else if (val === 'last14') {
+        start = subDays(today, 13)
         end = today
     } else if (val === 'last30') {
-        start = subDays(today, 30)
+        start = subDays(today, 29)
         end = today
+    } else if (val === 'last60') {
+        start = subDays(today, 59)
+        end = today
+    } else if (val === 'last90') {
+        start = subDays(today, 89)
+        end = today
+    } else if (val === 'thisMonth') {
+        start = startOfMonth(today)
+        end = today
+    } else if (val === 'lastMonth') {
+        const firstOfThisMonth = startOfMonth(today)
+        end = subDays(firstOfThisMonth, 1)
+        start = startOfMonth(end)
     }
     
     setStartDate(format(start, 'yyyy-MM-dd'))
@@ -521,10 +587,16 @@ export default function QuestionsPage() {
                    onChange={handleRangeChange}
                    value={quickSelect}
                  >
+                   <option value="today">Today</option>
                    <option value="yesterday">Yesterday</option>
                    <option value="last3">Last 3 Days</option>
                    <option value="last7">Last 7 Days</option>
+                   <option value="last14">Last 14 Days</option>
                    <option value="last30">Last 30 Days</option>
+                   <option value="last60">Last 60 Days</option>
+                   <option value="last90">Last 90 Days</option>
+                   <option value="thisMonth">This Month</option>
+                   <option value="lastMonth">Last Month</option>
                    <option value="custom">Custom Range</option>
                  </select>
                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -610,50 +682,55 @@ export default function QuestionsPage() {
           <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Daily Trend */}
             <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 hover:shadow-md transition-shadow duration-300">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">Query Volume Trend</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-slate-900">Query Volume Trend</h3>
+                <SegmentedControl
+                  options={[
+                    { value: 'day', label: 'Day' },
+                    { value: 'week', label: 'Week' },
+                    { value: 'month', label: 'Month' },
+                  ]}
+                  value={groupBy}
+                  onChange={(v) => setGroupBy(v as GroupBy)}
+                  size="sm"
+                />
+              </div>
               <div className="h-72">
                 <Bar
                   data={(() => {
-                    // If filtering by specific sub-category, show simple bar chart
                     if (subCategory !== 'all') {
+                      const grouped = groupDailyCounts(stats.daily_counts, groupBy)
                       return {
-                        labels: stats.daily_counts.map(d => d.date_beijing),
+                        labels: grouped.map(d => d.label),
                         datasets: [{
                           label: 'Queries',
-                          data: stats.daily_counts.map(d => d.count),
-                          backgroundColor: 'rgba(245, 158, 11, 0.8)', // Warm amber
+                          data: grouped.map(d => d.count),
+                          backgroundColor: 'rgba(245, 158, 11, 0.8)',
                           hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
                           borderRadius: 6,
                         }]
                       }
                     }
 
-                    // Otherwise, show stacked bar chart by sub-category
-                    const dailyData = stats.daily_counts_by_subcategory || []
+                    const grouped = groupDailyCountsBySubcategory(stats.daily_counts_by_subcategory || [], groupBy)
+                    const labels = Array.from(new Set(grouped.map(d => d.label))).sort()
+                    const subCategories = Array.from(new Set(grouped.map(d => d.sub_category)))
 
-                    // Get unique dates and sub-categories
-                    const dates = Array.from(new Set(dailyData.map(d => d.date_beijing))).sort()
-                    const subCategories = Array.from(new Set(dailyData.map(d => d.sub_category)))
-
-                    // Create datasets for each sub-category
                     const datasets = subCategories.map((subCat) => {
                       const colors = getSubCategoryColor(subCat)
                       return {
                         label: subCat,
-                        data: dates.map(date => {
-                          const item = dailyData.find(d => d.date_beijing === date && d.sub_category === subCat)
+                        data: labels.map(label => {
+                          const item = grouped.find(d => d.label === label && d.sub_category === subCat)
                           return item ? item.count : 0
                         }),
-                        backgroundColor: colors.bg.replace('0.5', '0.8'), // Make slightly more opaque
+                        backgroundColor: colors.bg.replace('0.5', '0.8'),
                         hoverBackgroundColor: colors.solid,
                         borderRadius: 2,
                       }
                     })
 
-                    return {
-                      labels: dates,
-                      datasets
-                    }
+                    return { labels, datasets }
                   })()}
                   options={chartOptions}
                 />

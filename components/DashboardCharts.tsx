@@ -15,6 +15,8 @@ import {
 } from 'chart.js'
 import { Line, Doughnut, Bar } from 'react-chartjs-2'
 import { TrendingUp, FileText, MessageCircle, Sparkles } from 'lucide-react'
+import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 ChartJS.register(
   CategoryScale,
@@ -29,17 +31,53 @@ ChartJS.register(
   Filler
 )
 
+type GroupBy = 'day' | 'week' | 'month'
+
+function getGroupKey(dateStr: string, groupBy: GroupBy): string {
+  const d = parseISO(dateStr)
+  if (groupBy === 'week') return format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  if (groupBy === 'month') return format(startOfMonth(d), 'yyyy-MM')
+  return dateStr
+}
+
+function groupMetrics(metrics: any[], groupBy: GroupBy) {
+  const map = new Map<string, { dau: number; qa: number; rg: number; cg: number }>()
+  for (const m of metrics) {
+    if (!m?.date_beijing) continue
+    const key = getGroupKey(m.date_beijing, groupBy)
+    if (!map.has(key)) map.set(key, { dau: 0, qa: 0, rg: 0, cg: 0 })
+    const entry = map.get(key)!
+    entry.dau += m.dau ?? 0
+    entry.qa += m.question_answering_count ?? 0
+    entry.rg += m.report_generation_count ?? 0
+    entry.cg += m.content_generation_count ?? 0
+  }
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, v]) => ({
+      label,
+      dau: v.dau,
+      question_answering_count: v.qa,
+      report_generation_count: v.rg,
+      content_generation_count: v.cg,
+    }))
+}
+
 interface DashboardChartsProps {
   metrics?: any[]
   types?: any[]
   costs?: any[]
+  groupBy?: GroupBy
+  onGroupByChange?: (g: GroupBy) => void
 }
 
-export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps) {
-  // Sort metrics by date ascending for chart
-  const sortedMetrics = [...(Array.isArray(metrics) ? metrics : [])]
+export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGroupByChange }: DashboardChartsProps) {
+  const rawMetrics = [...(Array.isArray(metrics) ? metrics : [])]
     .filter(m => m?.date_beijing)
     .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
+
+  const grouped = groupMetrics(rawMetrics, groupBy)
 
   // Sort costs by month ascending
   const sortedCosts = [...(Array.isArray(costs) ? costs : [])]
@@ -77,6 +115,12 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
     }
   }
 
+  const groupByOptions: { value: GroupBy; label: string }[] = [
+    { value: 'day', label: 'Day' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+  ]
+
   return (
     <div className="space-y-6 mb-8">
       {/* Daily Active Users - Featured Chart */}
@@ -88,22 +132,31 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
                 <TrendingUp className="w-5 h-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Daily Active Users</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Active Users</h3>
                 <p className="text-sm text-slate-500">User engagement over time</p>
               </div>
             </div>
-            <span className="text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1.5 rounded-full ring-1 ring-primary-500/10">
-              Trend
-            </span>
+            {onGroupByChange ? (
+              <SegmentedControl
+                options={groupByOptions}
+                value={groupBy}
+                onChange={(v) => onGroupByChange(v as GroupBy)}
+                size="sm"
+              />
+            ) : (
+              <span className="text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1.5 rounded-full ring-1 ring-primary-500/10">
+                Trend
+              </span>
+            )}
           </div>
         </div>
         <div className="h-72 px-6 pb-6">
           <Line
             data={{
-              labels: sortedMetrics.map(m => m.date_beijing.slice(5)), // MM-DD
+              labels: grouped.map(m => m.label),
               datasets: [{
                 label: 'Active Users',
-                data: sortedMetrics.map(m => m.dau),
+                data: grouped.map(m => m.dau),
                 borderColor: '#f59e0b',
                 backgroundColor: (context: any) => {
                   const ctx = context.chart.ctx
@@ -154,11 +207,11 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                labels: grouped.map(m => m.label),
                 datasets: [
                   {
                     label: 'Report Generation',
-                    data: sortedMetrics.map(m => (m.report_generation_count || 0) / 10),
+                    data: grouped.map(m => (m.report_generation_count || 0) / 10),
                     backgroundColor: (context: any) => {
                       const ctx = context.chart.ctx
                       const gradient = ctx.createLinearGradient(0, 0, 0, 200)
@@ -190,11 +243,11 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                labels: grouped.map(m => m.label),
                 datasets: [
                   {
                     label: 'Question Answering',
-                    data: sortedMetrics.map(m => m.question_answering_count || 0),
+                    data: grouped.map(m => m.question_answering_count || 0),
                     backgroundColor: (context: any) => {
                       const ctx = context.chart.ctx
                       const gradient = ctx.createLinearGradient(0, 0, 0, 200)
@@ -226,11 +279,11 @@ export function DashboardCharts({ metrics, types, costs }: DashboardChartsProps)
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: sortedMetrics.map(m => m.date_beijing.slice(5)),
+                labels: grouped.map(m => m.label),
                 datasets: [
                   {
                     label: 'Content Generation',
-                    data: sortedMetrics.map(m => m.content_generation_count || 0),
+                    data: grouped.map(m => m.content_generation_count || 0),
                     backgroundColor: (context: any) => {
                       const ctx = context.chart.ctx
                       const gradient = ctx.createLinearGradient(0, 0, 0, 200)

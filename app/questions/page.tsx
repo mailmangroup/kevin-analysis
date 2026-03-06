@@ -6,7 +6,7 @@ import { DateRangePicker } from '@/components/DateRangePicker'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
-import { subDays, format, startOfWeek, startOfMonth, parseISO } from 'date-fns'
+import { subDays, format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import {
@@ -122,31 +122,56 @@ function getGroupKey(dateStr: string, groupBy: GroupBy): string {
 function groupDailyCounts(
   daily: { date_beijing: string; count: number }[],
   groupBy: GroupBy
-): { label: string; count: number }[] {
+): { label: string; count: number; isPartial: boolean }[] {
   const map = new Map<string, number>()
   for (const d of daily) {
     const key = getGroupKey(d.date_beijing, groupBy)
     map.set(key, (map.get(key) ?? 0) + d.count)
   }
+  const latestDate = daily.length > 0 ? daily[daily.length - 1].date_beijing : null
+  const latestDateObj = latestDate ? parseISO(latestDate) : null
+  const latestGroupKey = latestDate ? getGroupKey(latestDate, groupBy) : null
+  const latestBucketIsPartial = latestDateObj
+    ? (groupBy === 'week' && latestDateObj < endOfWeek(latestDateObj, { weekStartsOn: 1 }))
+      || (groupBy === 'month' && latestDateObj < endOfMonth(latestDateObj))
+    : false
+
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([label, count]) => ({ label, count }))
+    .map(([label, count]) => ({
+      label,
+      count,
+      isPartial: groupBy !== 'day' && latestBucketIsPartial && label === latestGroupKey,
+    }))
 }
 
 function groupDailyCountsBySubcategory(
   daily: { date_beijing: string; sub_category: string; count: number }[],
   groupBy: GroupBy
-): { label: string; sub_category: string; count: number }[] {
+): { label: string; sub_category: string; count: number; isPartial: boolean }[] {
   const map = new Map<string, number>()
   for (const d of daily) {
     const key = `${getGroupKey(d.date_beijing, groupBy)}||${d.sub_category}`
     map.set(key, (map.get(key) ?? 0) + d.count)
   }
+  const latestDate = daily.length > 0 ? daily[daily.length - 1].date_beijing : null
+  const latestDateObj = latestDate ? parseISO(latestDate) : null
+  const latestGroupKey = latestDate ? getGroupKey(latestDate, groupBy) : null
+  const latestBucketIsPartial = latestDateObj
+    ? (groupBy === 'week' && latestDateObj < endOfWeek(latestDateObj, { weekStartsOn: 1 }))
+      || (groupBy === 'month' && latestDateObj < endOfMonth(latestDateObj))
+    : false
+
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, count]) => {
       const [label, sub_category] = key.split('||')
-      return { label, sub_category, count }
+      return {
+        label,
+        sub_category,
+        count,
+        isPartial: groupBy !== 'day' && latestBucketIsPartial && label === latestGroupKey,
+      }
     })
 }
 
@@ -561,6 +586,12 @@ export default function QuestionsPage() {
     }
   }
 
+  const groupedForPartial =
+    subCategory !== 'all'
+      ? groupDailyCounts(stats?.daily_counts || [], groupBy)
+      : groupDailyCountsBySubcategory(stats?.daily_counts_by_subcategory || [], groupBy)
+  const hasPartialLatestBucket = groupBy !== 'day' && groupedForPartial.some((d) => d.isPartial)
+
   return (
     <div className="min-h-screen bg-mesh">
       <Navbar />
@@ -714,37 +745,43 @@ export default function QuestionsPage() {
                 />
               </div>
               <p className="text-[11px] text-slate-400 -mt-4 mb-4">Calendar buckets: week starts Monday, month is calendar month.</p>
+              {hasPartialLatestBucket && (
+                <p className="text-[11px] text-amber-600 -mt-3 mb-4">* Latest {groupBy} bucket is partial (in progress).</p>
+              )}
               <div className="h-72">
                 <Bar
                   data={(() => {
                     if (subCategory !== 'all') {
                       const grouped = groupDailyCounts(stats.daily_counts, groupBy)
+                      const labels = grouped.map(d => (d.isPartial ? `${d.label}*` : d.label))
                       return {
-                        labels: grouped.map(d => d.label),
+                        labels,
                         datasets: [{
                           label: 'Queries',
                           data: grouped.map(d => d.count),
-                          backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                          hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+                          backgroundColor: grouped.map(d => d.isPartial ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.8)'),
+                          hoverBackgroundColor: grouped.map(d => d.isPartial ? 'rgba(245, 158, 11, 0.6)' : 'rgba(217, 119, 6, 1)'),
                           borderRadius: 6,
                         }]
                       }
                     }
 
                     const grouped = groupDailyCountsBySubcategory(stats.daily_counts_by_subcategory || [], groupBy)
-                    const labels = Array.from(new Set(grouped.map(d => d.label))).sort()
+                    const rawLabels = Array.from(new Set(grouped.map(d => d.label))).sort()
+                    const partialLabels = new Set(grouped.filter(d => d.isPartial).map(d => d.label))
+                    const labels = rawLabels.map(label => (partialLabels.has(label) ? `${label}*` : label))
                     const subCategories = Array.from(new Set(grouped.map(d => d.sub_category)))
 
                     const datasets = subCategories.map((subCat) => {
                       const colors = getSubCategoryColor(subCat)
                       return {
                         label: subCat,
-                        data: labels.map(label => {
+                        data: rawLabels.map(label => {
                           const item = grouped.find(d => d.label === label && d.sub_category === subCat)
                           return item ? item.count : 0
                         }),
-                        backgroundColor: colors.bg.replace('0.5', '0.8'),
-                        hoverBackgroundColor: colors.solid,
+                        backgroundColor: rawLabels.map(label => partialLabels.has(label) ? colors.bg.replace('0.5', '0.45') : colors.bg.replace('0.5', '0.8')),
+                        hoverBackgroundColor: rawLabels.map(label => partialLabels.has(label) ? colors.bg.replace('0.5', '0.65') : colors.solid),
                         borderRadius: 2,
                       }
                     })

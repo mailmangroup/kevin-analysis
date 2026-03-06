@@ -17,7 +17,7 @@ import {
 } from 'chart.js'
 import { Line, Doughnut, Bar } from 'react-chartjs-2'
 import { TrendingUp, FileText, MessageCircle, Sparkles } from 'lucide-react'
-import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns'
+import { format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 ChartJS.register(
@@ -55,6 +55,14 @@ function groupMetrics(metrics: any[], groupBy: GroupBy) {
     entry.cg += m.content_generation_count ?? 0
   }
 
+  const latestDate = metrics.length > 0 ? metrics[metrics.length - 1].date_beijing : null
+  const latestDateObj = latestDate ? parseISO(latestDate) : null
+  const latestGroupKey = latestDate ? getGroupKey(latestDate, groupBy) : null
+  const latestBucketIsPartial = latestDateObj
+    ? (groupBy === 'week' && latestDateObj < endOfWeek(latestDateObj, { weekStartsOn: 1 }))
+      || (groupBy === 'month' && latestDateObj < endOfMonth(latestDateObj))
+    : false
+
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([label, v]) => ({
@@ -63,6 +71,7 @@ function groupMetrics(metrics: any[], groupBy: GroupBy) {
       question_answering_count: v.qa,
       report_generation_count: v.rg,
       content_generation_count: v.cg,
+      isPartial: groupBy !== 'day' && latestBucketIsPartial && label === latestGroupKey,
     }))
 }
 
@@ -80,9 +89,12 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
     .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
 
   const grouped = groupMetrics(rawMetrics, groupBy)
+  const groupedLabels = grouped.map(m => (m.isPartial ? `${m.label}*` : m.label))
+  const partialBucketIndex = grouped.findIndex(m => m.isPartial)
   const availableDayCount = new Set(rawMetrics.map(m => m.date_beijing)).size
   const canGroupByWeek = availableDayCount >= 7
   const canGroupByMonth = availableDayCount >= 28
+  const hasPartialLatestBucket = groupBy !== 'day' && grouped[grouped.length - 1]?.isPartial
 
   useEffect(() => {
     if (!onGroupByChange) return
@@ -95,7 +107,7 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
     .filter(c => c?.year_month)
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
 
-  const chartOptions = {
+  const chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -119,8 +131,55 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
         border: { display: false }
       },
       x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 }, color: '#94a3b8', padding: 8 },
+        grid: {
+          display: true,
+          drawOnChartArea: true,
+          drawTicks: true,
+          color: (context: any) => {
+            if (groupBy === 'month') return 'transparent'
+            const index = context.tick.value
+            if (index === 0) return 'transparent'
+            
+            const currentLabel = groupedLabels[index]
+            const prevLabel = groupedLabels[index - 1]
+            if (!currentLabel || !prevLabel) return 'transparent'
+            
+            const currentMonth = currentLabel.replace('*', '').substring(0, 7)
+            const prevMonth = prevLabel.replace('*', '').substring(0, 7)
+            
+            return currentMonth !== prevMonth ? 'rgba(148, 163, 184, 0.5)' : 'transparent'
+          },
+          lineWidth: 1,
+        },
+        ticks: { 
+          font: (context: any) => {
+            const base = { size: 11 }
+            if (groupBy === 'month') return base
+            
+            const index = context.tick.value
+            const currentLabel = groupedLabels[index]
+            const prevLabel = groupedLabels[index - 1]
+            if (!currentLabel) return base
+            
+            const currentMonth = currentLabel.replace('*', '').substring(0, 7)
+            const prevMonth = prevLabel ? prevLabel.replace('*', '').substring(0, 7) : ''
+            
+            return (index === 0 || currentMonth !== prevMonth) ? { ...base, weight: 'bold' } : base
+          },
+          color: (context: any) => {
+            if (groupBy === 'month') return '#94a3b8'
+            const index = context.tick.value
+            const currentLabel = groupedLabels[index]
+            const prevLabel = groupedLabels[index - 1]
+            if (!currentLabel) return '#94a3b8'
+            
+            const currentMonth = currentLabel.replace('*', '').substring(0, 7)
+            const prevMonth = prevLabel ? prevLabel.replace('*', '').substring(0, 7) : ''
+            
+            return (index === 0 || currentMonth !== prevMonth) ? '#475569' : '#94a3b8'
+          },
+          padding: 8 
+        },
         border: { display: false }
       }
     }
@@ -166,6 +225,9 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
                   size="sm"
                 />
                 <p className="text-[11px] text-slate-400">Calendar buckets: week starts Monday, month is calendar month.</p>
+                {hasPartialLatestBucket && (
+                  <p className="text-[11px] text-amber-600">* Latest {groupBy} bucket is partial (in progress).</p>
+                )}
               </div>
             ) : (
               <span className="text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1.5 rounded-full ring-1 ring-primary-500/10">
@@ -177,7 +239,7 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
         <div className="h-72 px-6 pb-6">
           <Line
             data={{
-              labels: grouped.map(m => m.label),
+              labels: groupedLabels,
               datasets: [{
                 label: 'Active Users',
                 data: grouped.map(m => m.dau),
@@ -190,12 +252,16 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
                   return gradient
                 },
                 borderWidth: 2.5,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#f59e0b',
+                pointBackgroundColor: (context: any) =>
+                  context.dataIndex === partialBucketIndex ? '#fde68a' : '#ffffff',
+                pointBorderColor: (context: any) =>
+                  context.dataIndex === partialBucketIndex ? '#d97706' : '#f59e0b',
                 pointBorderWidth: 2,
-                pointRadius: 4,
+                pointRadius: (context: any) =>
+                  context.dataIndex === partialBucketIndex ? 5 : 4,
                 pointHoverRadius: 7,
-                pointHoverBackgroundColor: '#f59e0b',
+                pointHoverBackgroundColor: (context: any) =>
+                  context.dataIndex === partialBucketIndex ? '#d97706' : '#f59e0b',
                 pointHoverBorderColor: '#ffffff',
                 pointHoverBorderWidth: 2,
                 fill: true,
@@ -231,19 +297,13 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: grouped.map(m => m.label),
+                labels: groupedLabels,
                 datasets: [
                   {
                     label: 'Report Generation',
                     data: grouped.map(m => (m.report_generation_count || 0) / 10),
-                    backgroundColor: (context: any) => {
-                      const ctx = context.chart.ctx
-                      const gradient = ctx.createLinearGradient(0, 0, 0, 200)
-                      gradient.addColorStop(0, '#f59e0b')
-                      gradient.addColorStop(1, '#fbbf24')
-                      return gradient
-                    },
-                    hoverBackgroundColor: '#d97706',
+                    backgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.85)'),
+                    hoverBackgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.6)' : '#d97706'),
                     borderRadius: 6,
                     borderSkipped: false,
                   }
@@ -267,19 +327,13 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: grouped.map(m => m.label),
+                labels: groupedLabels,
                 datasets: [
                   {
                     label: 'Question Answering',
                     data: grouped.map(m => m.question_answering_count || 0),
-                    backgroundColor: (context: any) => {
-                      const ctx = context.chart.ctx
-                      const gradient = ctx.createLinearGradient(0, 0, 0, 200)
-                      gradient.addColorStop(0, '#f59e0b')
-                      gradient.addColorStop(1, '#fbbf24')
-                      return gradient
-                    },
-                    hoverBackgroundColor: '#d97706',
+                    backgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.85)'),
+                    hoverBackgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.6)' : '#d97706'),
                     borderRadius: 6,
                     borderSkipped: false,
                   }
@@ -303,19 +357,13 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
           <div className="h-56 px-6 pb-6">
             <Bar
               data={{
-                labels: grouped.map(m => m.label),
+                labels: groupedLabels,
                 datasets: [
                   {
                     label: 'Content Generation',
                     data: grouped.map(m => m.content_generation_count || 0),
-                    backgroundColor: (context: any) => {
-                      const ctx = context.chart.ctx
-                      const gradient = ctx.createLinearGradient(0, 0, 0, 200)
-                      gradient.addColorStop(0, '#f59e0b')
-                      gradient.addColorStop(1, '#fbbf24')
-                      return gradient
-                    },
-                    hoverBackgroundColor: '#d97706',
+                    backgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.85)'),
+                    hoverBackgroundColor: grouped.map(m => m.isPartial ? 'rgba(245, 158, 11, 0.6)' : '#d97706'),
                     borderRadius: 6,
                     borderSkipped: false,
                   }

@@ -52,6 +52,14 @@ const SUB_CATEGORY_COLORS: Record<string, string> = {
   'other': 'rgba(148, 163, 184, 0.85)',
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  'video_analysis': 'rgba(249, 115, 22, 0.85)', // Orange
+  'chat': 'rgba(245, 158, 11, 0.85)',           // Amber
+  'report': 'rgba(251, 191, 36, 0.85)',         // Yellow
+  'content': 'rgba(251, 146, 60, 0.85)',        // Orange-400
+  'other': 'rgba(148, 163, 184, 0.85)',         // Slate
+}
+
 interface DailyCostSummary {
   date: string
   total_cost_usd: number
@@ -211,19 +219,6 @@ export default function CostPage() {
     ],
   }
 
-  const dailyTokenData = {
-    labels: safeDailyData.map((d) => d.date),
-    datasets: [
-      {
-        label: 'Daily Tokens',
-        data: safeDailyData.map((d) => d.total_tokens),
-        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber primary
-        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
-        borderRadius: 6,
-      },
-    ],
-  }
-
   const monthlyChartData = {
     labels: safeMonthlyData.map((d) => d.year_month),
     datasets: [
@@ -266,6 +261,31 @@ export default function CostPage() {
         : []
     )
   ))
+
+  // Prepare Daily Cost stacked by Category
+  const allCategories = Array.from(new Set(
+    safeDailyData.flatMap(d => d.cost_breakdown ? Object.keys(d.cost_breakdown) : [])
+  ))
+
+  const dailyCostByCategoryChartData = {
+    labels: safeDailyData.map((d) => d.date),
+    datasets: allCategories.map(cat => ({
+      label: cat,
+      data: safeDailyData.map(d => {
+        if (!d.cost_breakdown || !d.cost_breakdown[cat]) return 0
+        // Sum all sub-categories for this category
+        return Number(
+          Object.values(d.cost_breakdown[cat])
+            .reduce((sum, val) => sum + val, 0)
+            .toFixed(4)
+        )
+      }),
+      backgroundColor: CATEGORY_COLORS[cat] ?? CATEGORY_COLORS['other'],
+      borderRadius: 4,
+      stack: 'cost',
+    }))
+  }
+
   const costBreakdownChartData = {
     labels: safeDailyData.map((d) => d.date),
     datasets: allSubCats.map(subCat => ({
@@ -338,7 +358,7 @@ export default function CostPage() {
             <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Cost (USD)</h3>
               <div className="h-72">
-                <Bar data={dailyChartData} options={chartOptions} />
+                <Bar data={dailyCostByCategoryChartData} options={stackedChartOptions} />
               </div>
             </div>
 
@@ -402,13 +422,7 @@ export default function CostPage() {
               </div>
             )}
 
-            {/* 4. Daily Token Usage */}
-            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Token Usage</h3>
-              <div className="h-72">
-                <Bar data={dailyTokenData} options={chartOptions} />
-              </div>
-            </div>
+            {/* 4. Daily Token Usage - Removed */}
 
             {/* 5. Monthly Cost Summary */}
             <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>

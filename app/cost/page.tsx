@@ -60,6 +60,44 @@ const CATEGORY_COLORS: Record<string, string> = {
   'other': 'rgba(148, 163, 184, 0.85)',         // Slate
 }
 
+// Pre-defined color palette for dynamic assignment
+const DYNAMIC_COLOR_PALETTE = [
+  'rgba(249, 115, 22, 0.85)', // Orange 500
+  'rgba(245, 158, 11, 0.85)', // Amber 500
+  'rgba(234, 179, 8, 0.85)',  // Yellow 500
+  'rgba(132, 204, 22, 0.85)', // Lime 500
+  'rgba(34, 197, 94, 0.85)',  // Green 500
+  'rgba(20, 184, 166, 0.85)', // Teal 500
+  'rgba(6, 182, 212, 0.85)',  // Cyan 500
+  'rgba(14, 165, 233, 0.85)', // Sky 500
+  'rgba(59, 130, 246, 0.85)', // Blue 500
+  'rgba(99, 102, 241, 0.85)', // Indigo 500
+  'rgba(168, 85, 247, 0.85)', // Purple 500
+  'rgba(217, 70, 239, 0.85)', // Fuchsia 500
+  'rgba(236, 72, 153, 0.85)', // Pink 500
+  'rgba(244, 63, 94, 0.85)',  // Rose 500
+  'rgba(239, 68, 68, 0.85)',  // Red 500
+  'rgba(100, 116, 139, 0.85)', // Slate 500
+]
+
+function getColorForString(str: string, type: 'category' | 'subCategory' = 'category'): string {
+  // Check explicit mappings first
+  if (type === 'category' && CATEGORY_COLORS[str]) return CATEGORY_COLORS[str]
+  if (type === 'subCategory' && SUB_CATEGORY_COLORS[str]) return SUB_CATEGORY_COLORS[str]
+  
+  // Also check if the key exists in the other map (fallback)
+  if (CATEGORY_COLORS[str]) return CATEGORY_COLORS[str]
+  if (SUB_CATEGORY_COLORS[str]) return SUB_CATEGORY_COLORS[str]
+
+  // Dynamic assignment based on string hash
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % DYNAMIC_COLOR_PALETTE.length
+  return DYNAMIC_COLOR_PALETTE[index]
+}
+
 interface DailyCostSummary {
   date: string
   total_cost_usd: number
@@ -280,7 +318,7 @@ export default function CostPage() {
             .toFixed(4)
         )
       }),
-      backgroundColor: CATEGORY_COLORS[cat] ?? CATEGORY_COLORS['other'],
+      backgroundColor: getColorForString(cat, 'category'),
       borderRadius: 4,
       stack: 'cost',
     }))
@@ -298,7 +336,7 @@ export default function CostPage() {
             .toFixed(4)
         )
       }),
-      backgroundColor: SUB_CATEGORY_COLORS[subCat] ?? SUB_CATEGORY_COLORS['other'],
+      backgroundColor: getColorForString(subCat, 'subCategory'),
       borderRadius: 4,
       stack: 'cost',
     })),
@@ -403,7 +441,7 @@ export default function CostPage() {
                       {subCatAverages.map((item) => {
                         const max = subCatAverages[0].avgCost
                         const pct = max > 0 ? (item.avgCost / max) * 100 : 0
-                        const color = SUB_CATEGORY_COLORS[item.name] ?? SUB_CATEGORY_COLORS['other']
+                        const color = getColorForString(item.name, 'subCategory')
                         return (
                           <div key={item.name}>
                             <div className="flex justify-between items-center mb-1">

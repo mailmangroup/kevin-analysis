@@ -48,6 +48,8 @@ interface Question {
   tool_calls?: { name: string; args: any }[]
   is_video_followup?: boolean
   video_analysis_span_id?: string
+  cost_usd?: number
+  reasoning_tokens?: number
 }
 
 interface BrandSummary {
@@ -381,6 +383,16 @@ function BrandQuestionGroup({
                             <span className="text-xs text-slate-600 font-medium">
                               {q.user_email}
                             </span>
+                            {q.cost_usd != null && q.cost_usd > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                ≈${q.cost_usd.toFixed(4)}
+                              </span>
+                            )}
+                            {q.reasoning_tokens != null && q.reasoning_tokens > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-100" title="Reasoning tokens used">
+                                🧠 {q.reasoning_tokens.toLocaleString()}
+                              </span>
+                            )}
                           </div>
                           <div className="text-slate-800 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto custom-scrollbar">
                             {q.question}

@@ -25,6 +25,8 @@ const COST_ESTIMATION_NOTE = {
   configItems: [
     { model: 'qwen-max', rates: '$0.58 / $2.32', context: 'Medium Context (~32k–128k)' },
     { model: 'qwen-plus', rates: '$0.11 / $1.15', context: 'Base/Medium (0–128k)' },
+    { model: 'qwen3.5-plus', rates: '$0.11 / $0.66', context: 'Estimated rate' },
+    { model: 'qwen3.5-flash', rates: '$0.028 / $0.276', context: 'Estimated rate' },
   ],
   limitations: [
     'Non-thinking calls use the higher Thinking rate → reported cost may exceed actual bill.',
@@ -42,11 +44,20 @@ ChartJS.register(
   Legend
 )
 
+const SUB_CATEGORY_COLORS: Record<string, string> = {
+  'video_analysis': 'rgba(249, 115, 22, 0.85)',
+  'chat': 'rgba(245, 158, 11, 0.85)',
+  'report': 'rgba(251, 191, 36, 0.85)',
+  'content': 'rgba(251, 146, 60, 0.85)',
+  'other': 'rgba(148, 163, 184, 0.85)',
+}
+
 interface DailyCostSummary {
   date: string
   total_cost_usd: number
   total_spans: number
   total_tokens: number
+  cost_breakdown?: Record<string, Record<string, number>>
 }
 
 interface MonthlyCostSummary {
@@ -226,6 +237,65 @@ export default function CostPage() {
     ],
   }
 
+  // Average cost per category and sub-category
+  const daysWithBreakdown = safeDailyData.filter(d => d.cost_breakdown).length
+  const categoryTotals: Record<string, number> = {}
+  const subCatTotals: Record<string, number> = {}
+  safeDailyData.forEach(day => {
+    if (!day.cost_breakdown) return
+    Object.entries(day.cost_breakdown).forEach(([cat, subCats]) => {
+      const catTotal = Object.values(subCats).reduce((s, v) => s + v, 0)
+      categoryTotals[cat] = (categoryTotals[cat] ?? 0) + catTotal
+      Object.entries(subCats).forEach(([subCat, cost]) => {
+        subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + cost
+      })
+    })
+  })
+  const categoryAverages = Object.entries(categoryTotals)
+    .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
+    .sort((a, b) => b.avgCost - a.avgCost)
+  const subCatAverages = Object.entries(subCatTotals)
+    .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
+    .sort((a, b) => b.avgCost - a.avgCost)
+
+  // Cost breakdown by sub-category stacked bar
+  const allSubCats = Array.from(new Set(
+    safeDailyData.flatMap(d =>
+      d.cost_breakdown
+        ? Object.values(d.cost_breakdown).flatMap(genType => Object.keys(genType))
+        : []
+    )
+  ))
+  const costBreakdownChartData = {
+    labels: safeDailyData.map((d) => d.date),
+    datasets: allSubCats.map(subCat => ({
+      label: subCat,
+      data: safeDailyData.map(day => {
+        if (!day.cost_breakdown) return 0
+        return Number(
+          Object.values(day.cost_breakdown)
+            .reduce((sum, genType) => sum + (genType[subCat] ?? 0), 0)
+            .toFixed(4)
+        )
+      }),
+      backgroundColor: SUB_CATEGORY_COLORS[subCat] ?? SUB_CATEGORY_COLORS['other'],
+      borderRadius: 4,
+      stack: 'cost',
+    })),
+  }
+  const stackedChartOptions = {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      legend: { display: true, position: 'bottom' as const, labels: { font: { size: 11 }, boxWidth: 12, padding: 16 } },
+    },
+    scales: {
+      ...chartOptions.scales,
+      x: { ...chartOptions.scales.x, stacked: true },
+      y: { ...chartOptions.scales.y, stacked: true },
+    },
+  }
+
   return (
     <div className="min-h-screen bg-mesh">
       <Navbar />
@@ -272,16 +342,76 @@ export default function CostPage() {
               </div>
             </div>
 
-            {/* 2. Daily Token Usage */}
-            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            {/* 2. Cost Breakdown by Sub-Category */}
+            {allSubCats.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Cost by Sub-Category</h3>
+                <div className="h-72">
+                  <Bar data={costBreakdownChartData} options={stackedChartOptions} />
+                </div>
+              </div>
+            )}
+
+            {/* 3. Average Cost per Category / Sub-Category */}
+            {categoryAverages.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Avg Daily Cost by Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Category</p>
+                    <div className="space-y-3">
+                      {categoryAverages.map((item) => {
+                        const max = categoryAverages[0].avgCost
+                        const pct = max > 0 ? (item.avgCost / max) * 100 : 0
+                        return (
+                          <div key={item.name}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-slate-600 capitalize">{item.name.replace(/_/g, ' ')}</span>
+                              <span className="text-xs font-medium text-slate-700">${item.avgCost.toFixed(4)}</span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Sub-Category</p>
+                    <div className="space-y-3">
+                      {subCatAverages.map((item) => {
+                        const max = subCatAverages[0].avgCost
+                        const pct = max > 0 ? (item.avgCost / max) * 100 : 0
+                        const color = SUB_CATEGORY_COLORS[item.name] ?? SUB_CATEGORY_COLORS['other']
+                        return (
+                          <div key={item.name}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-slate-600 capitalize">{item.name.replace(/_/g, ' ')}</span>
+                              <span className="text-xs font-medium text-slate-700">${item.avgCost.toFixed(4)}</span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Daily Token Usage */}
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Token Usage</h3>
               <div className="h-72">
                 <Bar data={dailyTokenData} options={chartOptions} />
               </div>
             </div>
 
-            {/* 3. Monthly Cost Summary */}
-            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            {/* 5. Monthly Cost Summary */}
+            <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Monthly Cost (USD)</h3>
               <div className="h-72">
                 <Bar data={monthlyChartData} options={chartOptions} />

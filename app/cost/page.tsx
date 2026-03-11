@@ -53,6 +53,9 @@ const SUB_CATEGORY_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
+  'Report Generation': 'rgba(251, 191, 36, 0.85)',   // Yellow
+  'Question Answering': 'rgba(245, 158, 11, 0.85)', // Amber
+  'Other': 'rgba(148, 163, 184, 0.85)',             // Slate
   'video_analysis': 'rgba(249, 115, 22, 0.85)', // Orange
   'chat': 'rgba(245, 158, 11, 0.85)',           // Amber
   'report': 'rgba(251, 191, 36, 0.85)',         // Yellow
@@ -279,9 +282,13 @@ export default function CostPage() {
     Object.entries(day.cost_breakdown).forEach(([cat, subCats]) => {
       const catTotal = Object.values(subCats).reduce((s, v) => s + v, 0)
       categoryTotals[cat] = (categoryTotals[cat] ?? 0) + catTotal
-      Object.entries(subCats).forEach(([subCat, cost]) => {
-        subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + cost
-      })
+      
+      // Only track sub-categories for Question Answering
+      if (cat === 'question_answering') {
+        Object.entries(subCats).forEach(([subCat, cost]) => {
+          subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + cost
+        })
+      }
     })
   })
   const categoryAverages = Object.entries(categoryTotals)
@@ -291,34 +298,43 @@ export default function CostPage() {
     .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
     .sort((a, b) => b.avgCost - a.avgCost)
 
-  // Cost breakdown by sub-category stacked bar
-  const allSubCats = Array.from(new Set(
+  // Cost breakdown by sub-category stacked bar (Question Answering only)
+  const qaSubCats = Array.from(new Set(
     safeDailyData.flatMap(d =>
-      d.cost_breakdown
-        ? Object.values(d.cost_breakdown).flatMap(genType => Object.keys(genType))
+      d.cost_breakdown && d.cost_breakdown['question_answering']
+        ? Object.keys(d.cost_breakdown['question_answering'])
         : []
     )
   ))
 
   // Prepare Daily Cost stacked by Category
-  const allCategories = Array.from(new Set(
-    safeDailyData.flatMap(d => d.cost_breakdown ? Object.keys(d.cost_breakdown) : [])
-  ))
+  const TARGET_CATEGORIES = ['Report Generation', 'Question Answering', 'Other']
 
   const dailyCostByCategoryChartData = {
     labels: safeDailyData.map((d) => d.date),
-    datasets: allCategories.map(cat => ({
-      label: cat,
+    datasets: TARGET_CATEGORIES.map(targetCat => ({
+      label: targetCat,
       data: safeDailyData.map(d => {
-        if (!d.cost_breakdown || !d.cost_breakdown[cat]) return 0
-        // Sum all sub-categories for this category
-        return Number(
-          Object.values(d.cost_breakdown[cat])
-            .reduce((sum, val) => sum + val, 0)
-            .toFixed(4)
-        )
+        if (!d.cost_breakdown) return 0
+        
+        let total = 0
+        Object.entries(d.cost_breakdown).forEach(([cat, subCats]) => {
+          // The structure of cost_breakdown is breakdown[category][subCategory] = cost
+          // We sum up costs based on the PARENT CATEGORY key
+          
+          const catTotal = Object.values(subCats).reduce((s, v) => s + v, 0)
+
+          if (targetCat === 'Report Generation' && cat === 'report_generation') {
+            total += catTotal
+          } else if (targetCat === 'Question Answering' && cat === 'question_answering') {
+            total += catTotal
+          } else if (targetCat === 'Other' && cat !== 'report_generation' && cat !== 'question_answering') {
+            total += catTotal
+          }
+        })
+        return Number(total.toFixed(4))
       }),
-      backgroundColor: getColorForString(cat, 'category'),
+      backgroundColor: CATEGORY_COLORS[targetCat] ?? CATEGORY_COLORS['Other'],
       borderRadius: 4,
       stack: 'cost',
     }))
@@ -326,14 +342,12 @@ export default function CostPage() {
 
   const costBreakdownChartData = {
     labels: safeDailyData.map((d) => d.date),
-    datasets: allSubCats.map(subCat => ({
+    datasets: qaSubCats.map(subCat => ({
       label: subCat,
       data: safeDailyData.map(day => {
-        if (!day.cost_breakdown) return 0
+        if (!day.cost_breakdown || !day.cost_breakdown['question_answering']) return 0
         return Number(
-          Object.values(day.cost_breakdown)
-            .reduce((sum, genType) => sum + (genType[subCat] ?? 0), 0)
-            .toFixed(4)
+          (day.cost_breakdown['question_answering'][subCat] ?? 0).toFixed(4)
         )
       }),
       backgroundColor: getColorForString(subCat, 'subCategory'),
@@ -400,10 +414,10 @@ export default function CostPage() {
               </div>
             </div>
 
-            {/* 2. Cost Breakdown by Sub-Category */}
-            {allSubCats.length > 0 && (
+            {/* 2. Cost Breakdown by Sub-Category (Q&A Only) */}
+            {qaSubCats.length > 0 && (
               <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <h3 className="text-lg font-semibold text-slate-900 mb-6">Daily Cost by Sub-Category</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Question Answering Breakdown</h3>
                 <div className="h-72">
                   <Bar data={costBreakdownChartData} options={stackedChartOptions} />
                 </div>

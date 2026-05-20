@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3 } from 'lucide-react'
+import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/questions', label: 'Questions', icon: HelpCircle },
   { href: '/cost', label: 'Cost', icon: DollarSign },
   { href: '/retention', label: 'Retention', icon: Users },
+  { href: '/releases', label: 'Releases', icon: Rocket },
 ]
 
 export function Navbar() {

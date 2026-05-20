@@ -389,13 +389,10 @@ export default function ReleasesPage() {
         <div className="mb-8 animate-fade-in">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">
-                Product updates
-              </p>
-              <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
                 Release <span className="text-gradient">Notes</span>
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
                 A plain-English view of what shipped, what improved, and what is already live in
                 Kevin.
               </p>

@@ -20,13 +20,14 @@ import {
 import { Bar } from 'react-chartjs-2'
 
 const COST_ESTIMATION_NOTE = {
-  overview: 'We track token costs using Global Fixed Rates in Phoenix. Rates are calibrated to the "Thinking Mode" (Medium Context) pricing tier, our primary cost driver.',
+  overview: 'We track token costs using Global Fixed Rates in Phoenix. Flat-rate estimates only — no tiered pricing.',
   configTitle: 'Per 1M tokens (USD)',
   configItems: [
-    { model: 'qwen-max', rates: '$0.58 / $2.32', context: 'Medium Context (~32k–128k)' },
-    { model: 'qwen-plus', rates: '$0.11 / $1.15', context: 'Base/Medium (0–128k)' },
-    { model: 'qwen3.5-plus', rates: '$0.11 / $0.66', context: 'Estimated rate' },
-    { model: 'qwen3.5-flash', rates: '$0.028 / $0.276', context: 'Estimated rate' },
+    { model: 'qwen3.6-max-preview', rates: '$1.30 / $7.80', context: 'Current premium model' },
+    { model: 'qwen-max', rates: '$0.58 / $2.32', context: 'Historical' },
+    { model: 'qwen-plus', rates: '$0.11 / $1.15', context: 'Historical' },
+    { model: 'qwen3.5-plus', rates: '$0.11 / $0.66', context: 'Flat rate' },
+    { model: 'qwen3.5-flash', rates: '$0.028 / $0.276', context: 'Flat rate' },
   ],
   limitations: [
     'Non-thinking calls use the higher Thinking rate → reported cost may exceed actual bill.',
@@ -246,19 +247,6 @@ export default function CostPage() {
   const safeMonthlyData = Array.isArray(monthlyData) 
     ? [...monthlyData].sort((a, b) => a.year_month.localeCompare(b.year_month)) 
     : []
-
-  const dailyChartData = {
-    labels: safeDailyData.map((d) => d.date),
-    datasets: [
-      {
-        label: 'Daily Cost (USD)',
-        data: safeDailyData.map((d) => d.total_cost_usd),
-        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber primary
-        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
-        borderRadius: 6,
-      },
-    ],
-  }
 
   const monthlyChartData = {
     labels: safeMonthlyData.map((d) => d.year_month),

@@ -639,7 +639,7 @@ function ReleaseView({ releases: list }: { releases: typeof releases }) {
           >
             {/* Release header — outside the card */}
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
-              <span className="rounded-md bg-slate-900 px-2 py-1 font-mono text-xs font-bold text-white">
+              <span className="rounded-md bg-primary-600 px-2 py-1 font-mono text-xs font-bold text-white">
                 {r.version}
               </span>
               <h2 className="text-base font-semibold text-slate-900">{r.name}</h2>

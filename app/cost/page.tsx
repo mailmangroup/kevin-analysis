@@ -102,98 +102,46 @@ type MainCategory = typeof MAIN_CATEGORIES[number]
 
 const QUESTION_ANSWERING_SUBCATEGORIES = new Set(['chat', 'report', 'video_analysis'])
 
-const CATEGORY_KEY_TO_LABEL: Record<string, string> = {
-  report_generation: 'Report Generation',
-  question_answering: 'Question Answering',
-}
-
-function formatBreakdownLabel(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+function formatLabel(value: string) {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function formatUsd(value: number) {
   return `$${value.toFixed(4)}`
 }
 
-function getMainCategoryForSubCategory(subCategory: string): MainCategory {
-  return QUESTION_ANSWERING_SUBCATEGORIES.has(subCategory) ? 'Question Answering' : 'Other'
-}
-
-function getOtherDetailLabel(category: string, subCategory: string) {
-  return subCategory === 'other'
-    ? CATEGORY_KEY_TO_LABEL[category] ?? formatBreakdownLabel(category)
-    : formatBreakdownLabel(subCategory)
-}
-
-function normalizeCostBreakdown(costBreakdown?: Record<string, Record<string, number>>) {
-  const categoryTotals: Record<MainCategory, number> = {
-    'Question Answering': 0,
-    'Other': 0,
-  }
+function normalizeCostBreakdown(day: Pick<DailyCostSummary, 'cost_breakdown' | 'total_cost_usd'>) {
+  let questionAnsweringTotal = 0
   const questionAnsweringSubCategoryTotals: Record<string, number> = {}
   const otherDetailTotals: Record<string, number> = {}
 
-  if (!costBreakdown) {
-    return {
-      categoryTotals,
-      questionAnsweringSubCategoryTotals,
-      otherDetailTotals,
-    }
+  if (day.cost_breakdown) {
+    Object.entries(day.cost_breakdown).forEach(([category, subCategories]) => {
+      Object.entries(subCategories).forEach(([subCategory, cost]) => {
+        if (cost <= 0) return
+        if (QUESTION_ANSWERING_SUBCATEGORIES.has(subCategory)) {
+          questionAnsweringTotal += cost
+          questionAnsweringSubCategoryTotals[subCategory] = (questionAnsweringSubCategoryTotals[subCategory] ?? 0) + cost
+        } else {
+          const label = formatLabel(category)
+          otherDetailTotals[label] = (otherDetailTotals[label] ?? 0) + cost
+        }
+      })
+    })
   }
 
-  Object.entries(costBreakdown).forEach(([category, subCategories]) => {
-    Object.entries(subCategories).forEach(([subCategory, cost]) => {
-      if (cost <= 0) return
-
-      const mainCategory = getMainCategoryForSubCategory(subCategory)
-      categoryTotals[mainCategory] += cost
-
-      if (mainCategory === 'Question Answering') {
-        questionAnsweringSubCategoryTotals[subCategory] = (questionAnsweringSubCategoryTotals[subCategory] ?? 0) + cost
-        return
-      }
-
-      const otherLabel = getOtherDetailLabel(category, subCategory)
-      otherDetailTotals[otherLabel] = (otherDetailTotals[otherLabel] ?? 0) + cost
-    })
-  })
+  const otherTotal = Math.max(0, day.total_cost_usd - questionAnsweringTotal)
 
   return {
-    categoryTotals,
+    categoryTotals: {
+      'Question Answering': questionAnsweringTotal,
+      'Other': otherTotal,
+    } as Record<MainCategory, number>,
     questionAnsweringSubCategoryTotals,
     otherDetailTotals,
   }
 }
 
-function getTooltipBreakdownLines(day?: DailyCostSummary) {
-  const {
-    questionAnsweringSubCategoryTotals,
-    otherDetailTotals,
-  } = normalizeCostBreakdown(day?.cost_breakdown)
-
-  const sections: Array<{ title: string; items: Array<[string, number]> }> = []
-
-  const questionAnsweringItems = Object.entries(questionAnsweringSubCategoryTotals)
-    .sort((a, b) => b[1] - a[1])
-  if (questionAnsweringItems.length > 0) {
-    sections.push({ title: 'Question Answering breakdown', items: questionAnsweringItems })
-  }
-
-  const otherItems = Object.entries(otherDetailTotals)
-    .filter(([, cost]) => cost > 0)
-    .sort((a, b) => b[1] - a[1])
-  if (otherItems.length > 0) {
-    sections.push({ title: 'Other detail', items: otherItems })
-  }
-
-  return sections.flatMap((section, sectionIndex) => [
-    ...(sectionIndex > 0 ? [''] : []),
-    `${section.title}:`,
-    ...section.items.map(([label, cost]) => `- ${formatBreakdownLabel(label)}: ${formatUsd(cost)}`),
-  ])
-}
 
 interface DailyCostSummary {
   date: string
@@ -343,7 +291,7 @@ export default function CostPage() {
     : []
   const normalizedDailyData = safeDailyData.map((day) => ({
     ...day,
-    normalized: normalizeCostBreakdown(day.cost_breakdown),
+    normalized: normalizeCostBreakdown(day),
   }))
 
   const monthlyChartData = {
@@ -418,7 +366,12 @@ export default function CostPage() {
           },
           afterBody: (items: Array<{ dataIndex: number }>) => {
             const day = normalizedDailyData[items[0]?.dataIndex]
-            return getTooltipBreakdownLines(day)
+            if (!day) return []
+            const otherItems = Object.entries(day.normalized.otherDetailTotals)
+              .filter(([, cost]) => cost > 0)
+              .sort((a, b) => b[1] - a[1])
+            if (otherItems.length === 0) return []
+            return ['', 'Other breakdown:', ...otherItems.map(([label, cost]) => `  ${label}: ${formatUsd(cost)}`)]
           },
           footer: (items: Array<{ dataIndex: number }>) => {
             const day = normalizedDailyData[items[0]?.dataIndex]

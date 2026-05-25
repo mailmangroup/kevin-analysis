@@ -8,6 +8,7 @@ import { TimePeriodToggle } from '@/components/TimePeriodToggle'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
+import { useLanguageStore } from '@/lib/store/language-store'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -284,6 +285,7 @@ function CostEstimationTooltip() {
 export default function CostPage() {
   const { profile, fetchProfile } = useUserStore()
   const { period, setPeriod } = useTimePeriodStore()
+  const { t } = useLanguageStore()
   const days = periodToDays[period]
 
   useEffect(() => {
@@ -442,7 +444,7 @@ export default function CostPage() {
           <div className="md:flex md:items-end md:justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-                Cost <span className="text-gradient">Analysis</span>
+                {t('cost.title')} <span className="text-gradient">{t('cost.subtitle')}</span>
               </h1>
               <p className="mt-3 text-sm text-slate-500 flex items-center gap-1.5 flex-wrap">
                 <span>Track token usage and estimated costs over time.</span>

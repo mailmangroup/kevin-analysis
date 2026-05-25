@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { t } = useLanguageStore()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,13 +40,13 @@ export default function LoginPage() {
           <div className="mx-auto w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary-600/20">
             <span className="text-white font-bold text-2xl">P</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-          <p className="text-sm text-slate-500 mt-2">Sign in to access your Phoenix Analytics</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('login.title')}</h1>
+          <p className="text-sm text-slate-500 mt-2">{t('login.subtitle')}</p>
         </div>
         
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5" htmlFor="email">Email address</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5" htmlFor="email">{t('login.email')}</label>
             <input
               id="email"
               type="email"
@@ -56,7 +58,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5" htmlFor="password">Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5" htmlFor="password">{t('login.password')}</label>
             <input
               id="password"
               type="password"
@@ -84,9 +86,9 @@ export default function LoginPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Logging in...
+                {t('login.loading')}
               </span>
-            ) : 'Sign in'}
+            ) : t('login.button')}
           </button>
         </form>
       </div>

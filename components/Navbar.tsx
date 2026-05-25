@@ -4,21 +4,23 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket } from 'lucide-react'
+import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages } from 'lucide-react'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 const navItems = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
-  { href: '/analysis', label: 'Analysis', icon: BarChart3 },
-  { href: '/questions', label: 'Questions', icon: HelpCircle },
-  { href: '/cost', label: 'Cost', icon: DollarSign },
-  { href: '/retention', label: 'Retention', icon: Users },
-  { href: '/releases', label: 'Releases', icon: Rocket },
+  { href: '/', labelKey: 'nav.overview', icon: LayoutDashboard },
+  { href: '/analysis', labelKey: 'nav.analysis', icon: BarChart3 },
+  { href: '/questions', labelKey: 'nav.questions', icon: HelpCircle },
+  { href: '/cost', labelKey: 'nav.cost', icon: DollarSign },
+  { href: '/retention', labelKey: 'nav.retention', icon: Users },
+  { href: '/releases', labelKey: 'nav.releases', icon: Rocket },
 ]
 
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
+  const { language, setLanguage, t } = useLanguageStore()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -45,7 +47,7 @@ export function Navbar() {
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
               </div>
               <span className="text-lg font-semibold text-slate-900 hidden sm:block">
-                Kevin <span className="text-slate-400 font-normal">Analytics</span>
+                Kevin <span className="text-slate-400 font-normal">{t('brand.analytics')}</span>
               </span>
             </Link>
           </div>
@@ -69,7 +71,7 @@ export function Navbar() {
                   `}
                 >
                   <Icon className={`w-4 h-4 ${active ? 'text-primary-600' : ''}`} />
-                  {item.label}
+                  {t(item.labelKey)}
                   {active && (
                     <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-500" />
                   )}
@@ -78,15 +80,24 @@ export function Navbar() {
             })}
           </div>
 
-          {/* Logout Button */}
-          <div className="flex items-center">
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-500
+                       hover:text-primary-600 hover:bg-primary-50 transition-all duration-200"
+              title={language === 'en' ? 'Switch to Chinese' : 'Switch to English'}
+            >
+              <Languages className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === 'en' ? '中' : 'EN'}</span>
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-500
                        hover:text-red-600 hover:bg-red-50 transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">{t('nav.logout')}</span>
             </button>
           </div>
         </div>
@@ -112,7 +123,7 @@ export function Navbar() {
                 `}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : ''}`} />
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             )
           })}

@@ -10,6 +10,7 @@ import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
 import { Calendar } from 'lucide-react'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 const fetcher = (url: string) => fetchWithAuth(url).then(res => {
   if (!res.ok) {
@@ -28,6 +29,7 @@ export default function Home() {
   const { profile, fetchProfile } = useUserStore()
   const { period, setPeriod } = useTimePeriodStore()
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day')
+  const { t } = useLanguageStore()
 
   useEffect(() => {
     fetchProfile()
@@ -78,13 +80,13 @@ export default function Home() {
           <div className="md:flex md:items-end md:justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-                Dashboard <span className="text-gradient">Overview</span>
+                {t('dashboard.title')} <span className="text-gradient">{t('dashboard.overview')}</span>
               </h1>
               <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
                 <Calendar className="w-4 h-4" />
-                <span>Last updated: {latestDate}</span>
+                <span>{t('dashboard.lastUpdated')}: {latestDate}</span>
                 <span className="text-slate-300">•</span>
-                <span>Beijing Time (UTC+8)</span>
+                <span>{t('dashboard.beijingTime')}</span>
               </div>
             </div>
             <div className="mt-5 md:mt-0">

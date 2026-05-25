@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { Navbar } from '@/components/Navbar'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
+import { useLanguageStore } from '@/lib/store/language-store'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -124,6 +125,7 @@ function UserListModal({ isOpen, onClose, title, users }: { isOpen: boolean; onC
 
 export default function RetentionPage() {
   const { profile, fetchProfile } = useUserStore()
+  const { t } = useLanguageStore()
   const [period, setPeriod] = useState('week')
   const [maxPeriods, setMaxPeriods] = useState(0)
   const [genType, setGenType] = useState('')
@@ -418,7 +420,7 @@ export default function RetentionPage() {
           <div className="md:flex md:items-end md:justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-                Retention <span className="text-gradient">Analysis</span>
+                {t('retention.title')} <span className="text-gradient">{t('retention.subtitle')}</span>
               </h1>
               <p className="mt-3 text-sm text-slate-500">
                 User cohort retention and lifecycle analysis • All dates in Beijing Time (UTC+8)

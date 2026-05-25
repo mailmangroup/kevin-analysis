@@ -12,6 +12,7 @@ import { DashboardCharts } from '@/components/DashboardCharts'
 import { MetricModeToggle } from '@/components/MetricModeToggle'
 import { TopLists } from '@/components/TopLists'
 import { Calendar, Users } from 'lucide-react'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 // Reuse MetricData from HeroKPIGrid
 interface MetricData {
@@ -32,6 +33,7 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
 
 export default function AnalysisPage() {
   const { profile } = useUserStore()
+  const { t } = useLanguageStore()
   
   // State for date range
   const [dateRange, setDateRange] = useState({
@@ -143,7 +145,7 @@ export default function AnalysisPage() {
         <div className="mb-10 animate-fade-in">
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-              Usage <span className="text-gradient">Analysis</span>
+              {t('analysis.title')} <span className="text-gradient">{t('analysis.subtitle')}</span>
             </h1>
             <p className="mt-3 text-sm text-slate-500">
               Detailed usage metrics and trends analysis • Beijing Time (UTC+8)

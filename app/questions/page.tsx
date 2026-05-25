@@ -6,6 +6,7 @@ import { DateRangePicker } from '@/components/DateRangePicker'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
+import { useLanguageStore } from '@/lib/store/language-store'
 import { subDays, format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChevronDown, ChevronRight } from 'lucide-react'
@@ -472,6 +473,7 @@ function BrandQuestionGroup({
  */
 export default function QuestionsPage() {
   const { profile, fetchProfile } = useUserStore()
+  const { t } = useLanguageStore()
   const [quickSelect, setQuickSelect] = useState('yesterday')
   const [startDate, setStartDate] = useState(() => {
     // Default to yesterday
@@ -613,7 +615,7 @@ export default function QuestionsPage() {
         <div className="mb-10 animate-fade-in">
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-              Questions <span className="text-gradient">Analysis</span>
+              {t('questions.title')} <span className="text-gradient">{t('questions.subtitle')}</span>
             </h1>
             <p className="mt-3 text-sm text-slate-500">
               Analyzing question_answering queries broken down by sub-category • All dates in Beijing Time (UTC+8) • Data available up to yesterday

@@ -28,6 +28,7 @@ import {
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { Navbar } from '@/components/Navbar'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { useLanguageStore } from '@/lib/store/language-store'
 import {
   releases,
   SCOPES,
@@ -241,6 +242,7 @@ function StatCard({
 // ---------------------------------------------------------------------------
 
 export default function ReleasesPage() {
+  const { t } = useLanguageStore()
   const [view, setView] = useState<View>('release')
   const [query, setQuery] = useState('')
   const [activeScopes, setActiveScopes] = useState<Set<Scope>>(new Set())
@@ -390,7 +392,7 @@ export default function ReleasesPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Release <span className="text-gradient">Notes</span>
+                {t('releases.title')} <span className="text-gradient">{t('releases.subtitle')}</span>
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
                 A plain-English view of what shipped, what improved, and what is already live in

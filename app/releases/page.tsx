@@ -115,10 +115,12 @@ function ChangeRow({
   change,
   showScope = false,
   showVersion,
+  t,
 }: {
   change: ReleaseChange
   showScope?: boolean
   showVersion?: string
+  t: (key: string) => string
 }) {
   const [open, setOpen] = useState(false)
   const live = isLive(change)
@@ -140,14 +142,14 @@ function ChangeRow({
             {!live && (
               <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
                 <Server className="h-3 w-3" />
-                Backend only
+                {t('releases.backendOnly')}
               </span>
             )}
           </div>
           <p className="text-sm font-semibold text-slate-800">{change.title}</p>
           <p className="mt-0.5 text-sm leading-relaxed text-slate-500">{change.description}</p>
         </div>
-        <span className="mt-1 shrink-0" title={live ? 'Live in product' : 'Backend only'}>
+        <span className="mt-1 shrink-0" title={live ? t('releases.liveInProduct') : t('releases.backendOnly')}>
           {live ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           ) : (
@@ -164,7 +166,7 @@ function ChangeRow({
             className="inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-slate-600"
           >
             <Lightbulb className="h-3 w-3" />
-            What this means
+            {t('releases.whatThisMeans')}
             <ChevronDown
               className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}
             />
@@ -598,12 +600,12 @@ export default function ReleasesPage() {
         {/* Content */}
         {totalChanges === 0 ? (
           <div className="rounded-xl border border-slate-100 bg-white p-12 text-center animate-fade-in">
-            <p className="text-sm text-slate-500">No changes match your filters.</p>
+            <p className="text-sm text-slate-500">{t('releases.noChanges')}</p>
             <button
               onClick={clearFilters}
               className="mt-2 text-sm font-medium text-slate-700 hover:text-slate-900"
             >
-              Clear filters
+              {t('releases.clearFilters')}
             </button>
           </div>
         ) : view === 'release' ? (
@@ -621,6 +623,7 @@ export default function ReleasesPage() {
 // ---------------------------------------------------------------------------
 
 function ReleaseView({ releases: list }: { releases: typeof releases }) {
+  const { t } = useLanguageStore()
   return (
     <div className="space-y-10">
       {list.map((r, i) => {
@@ -644,7 +647,7 @@ function ReleaseView({ releases: list }: { releases: typeof releases }) {
               <h2 className="text-base font-semibold text-slate-900">{r.name}</h2>
               <span className="text-sm text-slate-400">{formatDate(r.date)}</span>
               <span className="text-xs text-slate-400">
-                {r.changes.length} changes · {live} live
+                {r.changes.length} {t('releases.changes')} · {live} {t('releases.live')}
               </span>
             </div>
             <p className="mb-4 text-sm text-slate-500">{r.summary}</p>
@@ -674,7 +677,7 @@ function ReleaseView({ releases: list }: { releases: typeof releases }) {
                             idx >= 2 ? 'border-t border-slate-100' : '',
                           ].filter(Boolean).join(' ')}
                         >
-                          <ChangeRow change={c} />
+                          <ChangeRow change={c} t={t} />
                         </div>
                       )
                     })}
@@ -694,17 +697,23 @@ function ProjectView({
 }: {
   changes: (ReleaseChange & { version: string; date: string })[]
 }) {
+  const { t } = useLanguageStore()
   const [collapsed, setCollapsed] = useState<Set<Scope>>(new Set())
   const groups = SCOPES.map((scope) => ({
     scope,
     items: changes.filter((c) => c.scope === scope),
   })).filter((g) => g.items.length > 0)
 
+  const toggle = (scope: Scope) => {
+    const next = new Set(collapsed)
+    next.has(scope) ? next.delete(scope) : next.add(scope)
+    setCollapsed(next)
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {groups.map((g, i) => {
         const isCollapsed = collapsed.has(g.scope)
-        const live = g.items.filter(isLive).length
         return (
           <div
             key={g.scope}
@@ -712,34 +721,22 @@ function ProjectView({
             style={{ animationDelay: `${Math.min(i, 5) * 0.05}s` }}
           >
             <button
-              onClick={() =>
-                setCollapsed((s) => {
-                  const next = new Set(s)
-                  next.has(g.scope) ? next.delete(g.scope) : next.add(g.scope)
-                  return next
-                })
-              }
-              aria-expanded={!isCollapsed}
-              className="flex w-full items-center justify-between gap-4 bg-slate-50/70 px-5 py-3 text-left transition-colors hover:bg-slate-100/60"
+              onClick={() => toggle(g.scope)}
+              className="flex w-full items-center justify-between bg-slate-50/70 px-5 py-3 transition-colors hover:bg-slate-100/50"
             >
-              <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <ScopeDot scope={g.scope} />
-                <h2 className="text-sm font-semibold text-slate-900">{g.scope}</h2>
-                <span className="hidden text-xs text-slate-400 sm:inline">
-                  {g.items.length} changes
-                </span>
-                <span className="hidden text-xs text-slate-400 sm:inline">· {live} live</span>
+                <span className="text-sm font-semibold text-slate-800">{g.scope}</span>
+                <span className="text-xs text-slate-400">{g.items.length} {t('releases.changes')}</span>
               </div>
               <ChevronDown
-                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
-                  isCollapsed ? '-rotate-90' : ''
-                }`}
+                className={`h-4 w-4 text-slate-400 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
               />
             </button>
             {!isCollapsed && (
               <div className="divide-y divide-slate-100 px-5">
-                {g.items.map((c, idx) => (
-                  <ChangeRow key={idx} change={c} showVersion={c.version} />
+                {g.items.map((change, idx) => (
+                  <ChangeRow key={idx} change={change} showVersion={change.version} t={t} />
                 ))}
               </div>
             )}

@@ -171,7 +171,7 @@ const periodToDays: Record<Period, number> = {
   '90D': 90,
 }
 
-function CostEstimationTooltip() {
+function CostEstimationTooltip({ t }: { t: (key: string) => string }) {
   const [open, setOpen] = useState(false)
   const [hover, setHover] = useState(false)
   const visible = open || hover
@@ -197,7 +197,7 @@ function CostEstimationTooltip() {
           className="absolute left-0 top-full z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200/90 bg-white text-left shadow-xl shadow-slate-200/50 ring-1 ring-slate-900/5"
         >
           <div className="border-l-2 border-amber-400 bg-amber-50/60 px-3.5 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800/90">Cost estimation</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800/90">{t('cost.estimationNote')}</p>
           </div>
           <div className="p-3.5 space-y-3.5">
             <p className="text-xs leading-relaxed text-slate-600">{COST_ESTIMATION_NOTE.overview}</p>
@@ -216,7 +216,7 @@ function CostEstimationTooltip() {
             </div>
 
             <div className="border-t border-slate-100 pt-3">
-              <p className="text-[11px] font-semibold text-slate-700 mb-2">Limitations</p>
+              <p className="text-[11px] font-semibold text-slate-700 mb-2">{t('cost.limitations')}</p>
               <ul className="space-y-1.5 list-disc list-inside text-xs text-slate-600 marker:text-amber-500/70">
                 {COST_ESTIMATION_NOTE.limitations.map((lim, i) => (
                   <li key={i} className="leading-relaxed pl-0.5">{lim}</li>
@@ -419,11 +419,11 @@ export default function CostPage() {
                 {t('cost.title')} <span className="text-gradient">{t('cost.subtitle')}</span>
               </h1>
               <p className="mt-3 text-sm text-slate-500 flex items-center gap-1.5 flex-wrap">
-                <span>Track token usage and estimated costs over time.</span>
+                <span>{t('cost.description')}</span>
                 <span className="inline-flex items-center gap-1">
                   <span className="text-slate-400">·</span>
                   <span className="text-slate-500">Phoenix fixed rates (Medium Context)</span>
-                  <CostEstimationTooltip />
+                  <CostEstimationTooltip t={t} />
                 </span>
               </p>
             </div>

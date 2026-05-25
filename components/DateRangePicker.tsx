@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 interface DateRangePickerProps {
   startDate: string
@@ -15,11 +16,12 @@ export function DateRangePicker({
   onStartDateChange,
   onEndDateChange,
 }: DateRangePickerProps) {
+  const { t } = useLanguageStore()
   return (
     <div className="flex h-11 items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 shadow-sm hover:shadow transition-all">
       <div className="flex items-center gap-3 flex-1">
         <label htmlFor="start-date" className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-          From
+          {t('date.from')}
         </label>
         <input
           type="date"
@@ -32,7 +34,7 @@ export function DateRangePicker({
       <div className="h-6 w-px bg-slate-200" />
       <div className="flex items-center gap-3 flex-1">
         <label htmlFor="end-date" className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-          To
+          {t('date.to')}
         </label>
         <input
           type="date"

@@ -162,7 +162,7 @@ export default function AnalysisPage() {
                  <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                  </svg>
-                 Quick Select
+                 {t('date.quickSelect')}
                </label>
                <div className="relative">
                  <select
@@ -170,17 +170,17 @@ export default function AnalysisPage() {
                    onChange={handleRangeChange}
                    value={quickSelect}
                  >
-                   <option value="today">Today</option>
-                   <option value="yesterday">Yesterday</option>
-                   <option value="last3">Last 3 Days</option>
-                   <option value="last7">Last 7 Days</option>
-                   <option value="last14">Last 14 Days</option>
-                   <option value="last30">Last 30 Days</option>
-                   <option value="last60">Last 60 Days</option>
-                   <option value="last90">Last 90 Days</option>
-                   <option value="thisMonth">This Month</option>
-                   <option value="lastMonth">Last Month</option>
-                   <option value="custom">Custom Range</option>
+                   <option value="today">{t('date.today')}</option>
+                   <option value="yesterday">{t('date.yesterday')}</option>
+                   <option value="last3">{t('date.last3')}</option>
+                   <option value="last7">{t('date.last7')}</option>
+                   <option value="last14">{t('date.last14')}</option>
+                   <option value="last30">{t('date.last30')}</option>
+                   <option value="last60">{t('date.last60')}</option>
+                   <option value="last90">{t('date.last90')}</option>
+                   <option value="thisMonth">{t('date.thisMonth')}</option>
+                   <option value="lastMonth">{t('date.lastMonth')}</option>
+                   <option value="custom">{t('date.custom')}</option>
                  </select>
                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                    <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -194,7 +194,7 @@ export default function AnalysisPage() {
             <div className="lg:col-span-9">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
                 <Calendar className="w-4 h-4 text-primary-500" />
-                Date Range
+                {t('date.dateRange')}
               </label>
               <DateRangePicker
                 startDate={dateRange.startDate}

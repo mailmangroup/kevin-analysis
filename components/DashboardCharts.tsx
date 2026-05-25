@@ -19,6 +19,7 @@ import { Line, Doughnut, Bar } from 'react-chartjs-2'
 import { TrendingUp, FileText, MessageCircle, Sparkles } from 'lucide-react'
 import { format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 ChartJS.register(
   CategoryScale,
@@ -84,6 +85,7 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGroupByChange }: DashboardChartsProps) {
+  const { t } = useLanguageStore()
   const rawMetrics = [...(Array.isArray(metrics) ? metrics : [])]
     .filter(m => m?.date_beijing)
     .sort((a, b) => a.date_beijing.localeCompare(b.date_beijing))
@@ -190,18 +192,18 @@ export function DashboardCharts({ metrics, types, costs, groupBy = 'day', onGrou
   }
 
   const groupByOptions: { value: GroupBy; label: string; disabled?: boolean; title?: string }[] = [
-    { value: 'day', label: 'Day' },
+    { value: 'day', label: t('chart.day') },
     {
       value: 'week',
-      label: 'Week (Mon-Sun)',
+      label: t('chart.week'),
       disabled: !canGroupByWeek,
-      title: canGroupByWeek ? 'Grouped by calendar week (Monday-Sunday)' : 'Need at least 7 days of data',
+      title: canGroupByWeek ? t('chart.weekTooltip') : t('chart.needMoreData'),
     },
     {
       value: 'month',
-      label: 'Month (Calendar)',
+      label: t('chart.month'),
       disabled: !canGroupByMonth,
-      title: canGroupByMonth ? 'Grouped by calendar month' : 'Need at least 28 days of data',
+      title: canGroupByMonth ? '' : t('chart.needMoreMonthData'),
     },
   ]
 

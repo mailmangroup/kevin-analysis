@@ -1,4 +1,5 @@
 import { TopItem } from './TopLists'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 interface TopListCardProps {
   title: string
@@ -15,10 +16,13 @@ export function TopListCard({
   icon, 
   items, 
   loading, 
-  emptyText = "No data available",
+  emptyText,
   getItemLabel,
   isReportType = false
 }: TopListCardProps) {
+  const { t } = useLanguageStore()
+  const displayEmptyText = emptyText || t('toplist.noData')
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100 h-full">
       <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
@@ -45,14 +49,14 @@ export function TopListCard({
                     {displayCount.toLocaleString()}
                   </span>
                   {isReportType && (
-                    <span className="text-[10px] text-slate-400 italic">estimated</span>
+                    <span className="text-[10px] text-slate-400 italic">{t('kpi.estimated')}</span>
                   )}
                 </div>
               </div>
             )
           })
         ) : (
-          <div className="text-sm text-slate-400 italic py-4 text-center">{emptyText}</div>
+          <div className="text-sm text-slate-400 italic py-4 text-center">{displayEmptyText}</div>
         )}
       </div>
     </div>

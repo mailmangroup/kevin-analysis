@@ -2,6 +2,7 @@
 
 import { HeroKPICard } from './HeroKPICard'
 import { Users, MessageSquare, FileText, Sparkles, Video, MessageCircle, Image as ImageIcon, Search, BarChart2, HelpCircle } from 'lucide-react'
+import { useLanguageStore } from '@/lib/store/language-store'
 
 interface MetricData {
   dau?: number
@@ -37,6 +38,7 @@ const getCategoryIcon = (category: string) => {
 }
 
 export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKPIGridProps) {
+  const { t } = useLanguageStore()
   // Check if previous period has valid recorded data
   const isComparisonValid = previousMetrics && previousMetrics.length > 0 && previousMetrics.every(m => m.is_recorded !== false)
 
@@ -125,35 +127,35 @@ export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKP
       {/* Main Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <HeroKPICard
-          title="Avg Daily Users"
+          title={t('kpi.avgDailyUsers')}
           value={avgDAU}
           change={dauChange}
-          changeLabel="vs previous period"
+          changeLabel={t('kpi.vsPrevious')}
           icon={<Users className="w-5 h-5" />}
           index={0}
         />
         <HeroKPICard
-          title={mode === 'count' ? "Questions Answered" : "Users Asking Questions"}
+          title={mode === 'count' ? t('kpi.questionsAnswered') : t('kpi.usersAsking')}
           value={totalQuestions}
           change={questionsChange}
-          changeLabel="vs previous period"
+          changeLabel={t('kpi.vsPrevious')}
           icon={<MessageSquare className="w-5 h-5" />}
           index={1}
         />
         <HeroKPICard
-          title={mode === 'count' ? "Reports Generated" : "Users Generating Reports"}
+          title={mode === 'count' ? t('kpi.reportsGenerated') : t('kpi.usersGeneratingReports')}
           value={displayReports}
           change={reportsChange}
-          changeLabel="vs previous period"
+          changeLabel={t('kpi.vsPrevious')}
           icon={<FileText className="w-5 h-5" />}
-          annotation={mode === 'count' ? "estimated" : undefined}
+          annotation={mode === 'count' ? t('kpi.estimated') : undefined}
           index={2}
         />
         <HeroKPICard
-          title={mode === 'count' ? "Content Generated" : "Users Generating Content"}
+          title={mode === 'count' ? t('kpi.contentGenerated') : t('kpi.usersGeneratingContent')}
           value={totalContent}
           change={contentChange}
-          changeLabel="vs previous period"
+          changeLabel={t('kpi.vsPrevious')}
           icon={<Sparkles className="w-5 h-5" />}
           index={3}
         />
@@ -164,7 +166,7 @@ export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKP
         <div className="animate-fade-in">
           <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <span className="w-1 h-5 bg-primary-500 rounded-full"></span>
-            Question Categories Breakdown
+            {t('kpi.breakdown')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {subCatMetrics.map((sub, i) => {
@@ -175,7 +177,7 @@ export function HeroKPIGrid({ metrics, previousMetrics, mode = 'count' }: HeroKP
                   title={sub.name.charAt(0).toUpperCase() + sub.name.slice(1)}
                   value={sub.current}
                   change={change}
-                  changeLabel="vs previous period"
+                  changeLabel={t('kpi.vsPrevious')}
                   // Using specific icons based on category name
                   icon={getCategoryIcon(sub.name)}
                   index={i + 4}

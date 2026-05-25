@@ -65,7 +65,7 @@ const fetcher = (url: string) => fetchWithAuth(url).then(res => {
 })
 
 // Simple Modal Component
-function UserListModal({ isOpen, onClose, title, users }: { isOpen: boolean; onClose: () => void; title: string; users: LifecycleUser[] }) {
+function UserListModal({ isOpen, onClose, title, users, t }: { isOpen: boolean; onClose: () => void; title: string; users: LifecycleUser[]; t: (key: string) => string }) {
   if (!isOpen) return null
 
   return (
@@ -102,7 +102,7 @@ function UserListModal({ isOpen, onClose, title, users }: { isOpen: boolean; onC
                   </ul>
                 ) : (
                   <div className="py-8 text-center">
-                    <p className="text-sm text-slate-500">No users found for this segment.</p>
+                    <p className="text-sm text-slate-500">{t('retention.noUsers')}</p>
                   </div>
                 )}
               </div>
@@ -307,27 +307,27 @@ export default function RetentionPage() {
     labels: lifecycleData.map((d: LifecycleWeek) => d.week),
     datasets: [
         {
-            label: 'New',
+            label: t('retention.newUsers'),
             data: lifecycleData.map((d: LifecycleWeek) => d.new),
             backgroundColor: 'rgba(250, 204, 21, 0.9)', // Bright yellow (#facc15)
         },
         {
-            label: 'Active',
+            label: t('retention.activeUsers'),
             data: lifecycleData.map((d: LifecycleWeek) => d.active),
             backgroundColor: 'rgba(245, 158, 11, 0.9)', // Amber (#f59e0b)
         },
         {
-            label: 'Resurrected',
+            label: t('retention.resurrectedUsers'),
             data: lifecycleData.map((d: LifecycleWeek) => d.resurrected),
             backgroundColor: 'rgba(251, 146, 60, 0.9)', // Light orange (#fb923c)
         },
         {
-            label: 'At-Risk',
+            label: t('retention.atRiskUsers'),
             data: lifecycleData.map((d: LifecycleWeek) => -d.at_risk), // Negative for display below axis
             backgroundColor: 'rgba(249, 115, 22, 0.9)', // Orange (#f97316)
         },
         {
-            label: 'Churned',
+            label: t('retention.churnedUsers'),
             data: lifecycleData.map((d: LifecycleWeek) => -d.churned), // Negative
             backgroundColor: 'rgba(220, 38, 38, 0.9)', // Red (#dc2626)
         },
@@ -348,7 +348,7 @@ export default function RetentionPage() {
           },
           title: {
               display: true,
-              text: 'User Lifecycle (Weekly)',
+              text: t('retention.lifecycleTitle'),
           },
           tooltip: {
               callbacks: {
@@ -381,19 +381,19 @@ export default function RetentionPage() {
             
             if (datasetIndex === 0) {
                 users = weekData.new_users || [];
-                label = 'New Users';
+                label = t('retention.newUsers');
             } else if (datasetIndex === 1) {
                 users = weekData.active_users || [];
-                label = 'Active Users';
+                label = t('retention.activeUsers');
             } else if (datasetIndex === 2) {
                 users = weekData.resurrected_users || [];
-                label = 'Resurrected Users';
+                label = t('retention.resurrectedUsers');
             } else if (datasetIndex === 3) {
                 users = weekData.at_risk_users || [];
-                label = 'At-Risk Users';
+                label = t('retention.atRiskUsers');
             } else if (datasetIndex === 4) {
                 users = weekData.churned_users || [];
-                label = 'Churned Users';
+                label = t('retention.churnedUsers');
             }
             
             setModalTitle(`${label} - ${weekData.week}`);
@@ -412,6 +412,7 @@ export default function RetentionPage() {
         onClose={() => setIsModalOpen(false)}
         title={modalTitle}
         users={selectedUsers}
+        t={t}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
@@ -434,7 +435,7 @@ export default function RetentionPage() {
                 <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Download CSV
+                {t('retention.export')}
               </button>
             </div>
           </div>
@@ -444,15 +445,15 @@ export default function RetentionPage() {
         <div className="bg-white rounded-2xl shadow-card p-6 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">Period</label>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">{t('retention.period')}</label>
               <div className="relative">
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
                   className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
                 >
-                  <option value="week">Weekly</option>
-                  <option value="month">Monthly</option>
+                  <option value="week">{t('chart.week')}</option>
+                  <option value="month">{t('chart.month')}</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -462,19 +463,19 @@ export default function RetentionPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">Generation Type</label>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">{t('retention.genType')}</label>
               <div className="relative">
                 <select
                   value={genType}
                   onChange={(e) => setGenType(e.target.value)}
                   className="block w-full h-11 rounded-xl border-0 pl-4 pr-10 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-primary-500 bg-white hover:bg-slate-50 transition-all sm:text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow"
                 >
-                  <option value="">All Features</option>
-                  <option value="question_answering">Question Answering</option>
-                  <option value="video_analysis">Video Analysis</option>
-                  <option value="report_qa">Report QA</option>
-                  <option value="content_generation">Content Generation</option>
-                  <option value="report_generation">Report Generation</option>
+                  <option value="">{t('retention.allTypes')}</option>
+                  <option value="question_answering">{t('toplist.questions')}</option>
+                  <option value="video_analysis">{t('retention.videoAnalysis')}</option>
+                  <option value="report_qa">{t('retention.reportQA')}</option>
+                  <option value="content_generation">{t('toplist.content')}</option>
+                  <option value="report_generation">{t('toplist.reports')}</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -524,18 +525,18 @@ export default function RetentionPage() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-20 w-32 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                    Cohort
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-32 bg-slate-50 z-20 w-24 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                    Users
-                  </th>
-                  {columns.map((col) => (
-                    <th key={col} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[50px]">
-                      {period === 'week' ? 'W' : 'M'}{col}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-20 w-32 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                      {t('retention.cohort')}
                     </th>
-                  ))}
-                </tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-32 bg-slate-50 z-20 w-24 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                      {t('retention.totalUsers')}
+                    </th>
+                    {columns.map((col) => (
+                       <th key={col} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[50px]">
+                         {period === 'week' ? t('retention.week') : t('retention.month')} {col} {period === 'week' ? t('retention.weekSuffix') : t('retention.monthSuffix')}
+                       </th>
+                     ))}
+                  </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
                 {data.map((cohort) => (

@@ -54,14 +54,8 @@ const SUB_CATEGORY_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Report Generation': 'rgba(251, 191, 36, 0.85)',   // Yellow
   'Question Answering': 'rgba(245, 158, 11, 0.85)', // Amber
   'Other': 'rgba(148, 163, 184, 0.85)',             // Slate
-  'video_analysis': 'rgba(249, 115, 22, 0.85)', // Orange
-  'chat': 'rgba(245, 158, 11, 0.85)',           // Amber
-  'report': 'rgba(251, 191, 36, 0.85)',         // Yellow
-  'content': 'rgba(251, 146, 60, 0.85)',        // Orange-400
-  'other': 'rgba(148, 163, 184, 0.85)',         // Slate
 }
 
 // Pre-defined color palette for dynamic assignment
@@ -100,6 +94,104 @@ function getColorForString(str: string, type: 'category' | 'subCategory' = 'cate
   }
   const index = Math.abs(hash) % DYNAMIC_COLOR_PALETTE.length
   return DYNAMIC_COLOR_PALETTE[index]
+}
+
+const MAIN_CATEGORIES = ['Question Answering', 'Other'] as const
+type MainCategory = typeof MAIN_CATEGORIES[number]
+
+const QUESTION_ANSWERING_SUBCATEGORIES = new Set(['chat', 'report', 'video_analysis'])
+
+const CATEGORY_KEY_TO_LABEL: Record<string, string> = {
+  report_generation: 'Report Generation',
+  question_answering: 'Question Answering',
+}
+
+function formatBreakdownLabel(value: string) {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatUsd(value: number) {
+  return `$${value.toFixed(4)}`
+}
+
+function getMainCategoryForSubCategory(subCategory: string): MainCategory {
+  return QUESTION_ANSWERING_SUBCATEGORIES.has(subCategory) ? 'Question Answering' : 'Other'
+}
+
+function getOtherDetailLabel(category: string, subCategory: string) {
+  return subCategory === 'other'
+    ? CATEGORY_KEY_TO_LABEL[category] ?? formatBreakdownLabel(category)
+    : formatBreakdownLabel(subCategory)
+}
+
+function normalizeCostBreakdown(costBreakdown?: Record<string, Record<string, number>>) {
+  const categoryTotals: Record<MainCategory, number> = {
+    'Question Answering': 0,
+    'Other': 0,
+  }
+  const questionAnsweringSubCategoryTotals: Record<string, number> = {}
+  const otherDetailTotals: Record<string, number> = {}
+
+  if (!costBreakdown) {
+    return {
+      categoryTotals,
+      questionAnsweringSubCategoryTotals,
+      otherDetailTotals,
+    }
+  }
+
+  Object.entries(costBreakdown).forEach(([category, subCategories]) => {
+    Object.entries(subCategories).forEach(([subCategory, cost]) => {
+      if (cost <= 0) return
+
+      const mainCategory = getMainCategoryForSubCategory(subCategory)
+      categoryTotals[mainCategory] += cost
+
+      if (mainCategory === 'Question Answering') {
+        questionAnsweringSubCategoryTotals[subCategory] = (questionAnsweringSubCategoryTotals[subCategory] ?? 0) + cost
+        return
+      }
+
+      const otherLabel = getOtherDetailLabel(category, subCategory)
+      otherDetailTotals[otherLabel] = (otherDetailTotals[otherLabel] ?? 0) + cost
+    })
+  })
+
+  return {
+    categoryTotals,
+    questionAnsweringSubCategoryTotals,
+    otherDetailTotals,
+  }
+}
+
+function getTooltipBreakdownLines(day?: DailyCostSummary) {
+  const {
+    questionAnsweringSubCategoryTotals,
+    otherDetailTotals,
+  } = normalizeCostBreakdown(day?.cost_breakdown)
+
+  const sections: Array<{ title: string; items: Array<[string, number]> }> = []
+
+  const questionAnsweringItems = Object.entries(questionAnsweringSubCategoryTotals)
+    .sort((a, b) => b[1] - a[1])
+  if (questionAnsweringItems.length > 0) {
+    sections.push({ title: 'Question Answering breakdown', items: questionAnsweringItems })
+  }
+
+  const otherItems = Object.entries(otherDetailTotals)
+    .filter(([, cost]) => cost > 0)
+    .sort((a, b) => b[1] - a[1])
+  if (otherItems.length > 0) {
+    sections.push({ title: 'Other detail', items: otherItems })
+  }
+
+  return sections.flatMap((section, sectionIndex) => [
+    ...(sectionIndex > 0 ? [''] : []),
+    `${section.title}:`,
+    ...section.items.map(([label, cost]) => `- ${formatBreakdownLabel(label)}: ${formatUsd(cost)}`),
+  ])
 }
 
 interface DailyCostSummary {
@@ -247,6 +339,10 @@ export default function CostPage() {
   const safeMonthlyData = Array.isArray(monthlyData) 
     ? [...monthlyData].sort((a, b) => a.year_month.localeCompare(b.year_month)) 
     : []
+  const normalizedDailyData = safeDailyData.map((day) => ({
+    ...day,
+    normalized: normalizeCostBreakdown(day.cost_breakdown),
+  }))
 
   const monthlyChartData = {
     labels: safeMonthlyData.map((d) => d.year_month),
@@ -262,92 +358,72 @@ export default function CostPage() {
   }
 
   // Average cost per category and sub-category
-  const daysWithBreakdown = safeDailyData.filter(d => d.cost_breakdown).length
-  const categoryTotals: Record<string, number> = {}
-  const subCatTotals: Record<string, number> = {}
-  safeDailyData.forEach(day => {
-    if (!day.cost_breakdown) return
-    Object.entries(day.cost_breakdown).forEach(([cat, subCats]) => {
-      const catTotal = Object.values(subCats).reduce((s, v) => s + v, 0)
-      categoryTotals[cat] = (categoryTotals[cat] ?? 0) + catTotal
-      
-      // Only track sub-categories for Question Answering
-      if (cat === 'question_answering') {
-        Object.entries(subCats).forEach(([subCat, cost]) => {
-          subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + cost
-        })
-      }
+  const daysWithBreakdown = normalizedDailyData.filter((d) => d.cost_breakdown).length
+  const categoryTotals: Record<MainCategory, number> = {
+    'Question Answering': 0,
+    'Other': 0,
+  }
+  const questionAnsweringSubCategoryTotals: Record<string, number> = {}
+  normalizedDailyData.forEach((day) => {
+    MAIN_CATEGORIES.forEach((category) => {
+      categoryTotals[category] = (categoryTotals[category] ?? 0) + day.normalized.categoryTotals[category]
+    })
+
+    Object.entries(day.normalized.questionAnsweringSubCategoryTotals).forEach(([subCategory, cost]) => {
+      questionAnsweringSubCategoryTotals[subCategory] = (questionAnsweringSubCategoryTotals[subCategory] ?? 0) + cost
     })
   })
   const categoryAverages = Object.entries(categoryTotals)
     .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
     .sort((a, b) => b.avgCost - a.avgCost)
-  const subCatAverages = Object.entries(subCatTotals)
+  const subCatAverages = Object.entries(questionAnsweringSubCategoryTotals)
     .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
     .sort((a, b) => b.avgCost - a.avgCost)
 
-  // Cost breakdown by sub-category stacked bar (Question Answering only)
-  const qaSubCats = Array.from(new Set(
-    safeDailyData.flatMap(d =>
-      d.cost_breakdown && d.cost_breakdown['question_answering']
-        ? Object.keys(d.cost_breakdown['question_answering'])
-        : []
-    )
-  ))
-
   // Prepare Daily Cost stacked by Category
-  const TARGET_CATEGORIES = ['Report Generation', 'Question Answering', 'Other']
-
   const dailyCostByCategoryChartData = {
-    labels: safeDailyData.map((d) => d.date),
-    datasets: TARGET_CATEGORIES.map(targetCat => ({
-      label: targetCat,
-      data: safeDailyData.map(d => {
-        if (!d.cost_breakdown) return 0
-        
-        let total = 0
-        Object.entries(d.cost_breakdown).forEach(([cat, subCats]) => {
-          // The structure of cost_breakdown is breakdown[category][subCategory] = cost
-          // We sum up costs based on the PARENT CATEGORY key
-          
-          const catTotal = Object.values(subCats).reduce((s, v) => s + v, 0)
-
-          if (targetCat === 'Report Generation' && cat === 'report_generation') {
-            total += catTotal
-          } else if (targetCat === 'Question Answering' && cat === 'question_answering') {
-            total += catTotal
-          } else if (targetCat === 'Other' && cat !== 'report_generation' && cat !== 'question_answering') {
-            total += catTotal
-          }
-        })
-        return Number(total.toFixed(4))
-      }),
-      backgroundColor: CATEGORY_COLORS[targetCat] ?? CATEGORY_COLORS['Other'],
+    labels: normalizedDailyData.map((d) => d.date),
+    datasets: MAIN_CATEGORIES.map((targetCategory) => ({
+      label: targetCategory,
+      data: normalizedDailyData.map((day) =>
+        Number(day.normalized.categoryTotals[targetCategory].toFixed(4))
+      ),
+      backgroundColor: CATEGORY_COLORS[targetCategory] ?? CATEGORY_COLORS['Other'],
       borderRadius: 4,
       stack: 'cost',
     }))
   }
 
-  const costBreakdownChartData = {
-    labels: safeDailyData.map((d) => d.date),
-    datasets: qaSubCats.map(subCat => ({
-      label: subCat,
-      data: safeDailyData.map(day => {
-        if (!day.cost_breakdown || !day.cost_breakdown['question_answering']) return 0
-        return Number(
-          (day.cost_breakdown['question_answering'][subCat] ?? 0).toFixed(4)
-        )
-      }),
-      backgroundColor: getColorForString(subCat, 'subCategory'),
-      borderRadius: 4,
-      stack: 'cost',
-    })),
-  }
   const stackedChartOptions = {
     ...chartOptions,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     plugins: {
       ...chartOptions.plugins,
       legend: { display: true, position: 'bottom' as const, labels: { font: { size: 11 }, boxWidth: 12, padding: 16 } },
+      tooltip: {
+        ...chartOptions.plugins.tooltip,
+        callbacks: {
+          title: (items: Array<{ dataIndex: number; label: string }>) => {
+            const day = normalizedDailyData[items[0]?.dataIndex]
+            return day?.date ?? items[0]?.label ?? ''
+          },
+          label: (context: { dataset: { label?: string }; parsed: { y?: number } }) => {
+            const value = context.parsed.y ?? 0
+            return `${context.dataset.label ?? 'Cost'}: ${formatUsd(value)}`
+          },
+          afterBody: (items: Array<{ dataIndex: number }>) => {
+            const day = normalizedDailyData[items[0]?.dataIndex]
+            return getTooltipBreakdownLines(day)
+          },
+          footer: (items: Array<{ dataIndex: number }>) => {
+            const day = normalizedDailyData[items[0]?.dataIndex]
+            return day ? `Total: ${formatUsd(day.total_cost_usd)}` : ''
+          },
+        },
+      },
     },
     scales: {
       ...chartOptions.scales,
@@ -402,23 +478,13 @@ export default function CostPage() {
               </div>
             </div>
 
-            {/* 2. Cost Breakdown by Sub-Category (Q&A Only) */}
-            {qaSubCats.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <h3 className="text-lg font-semibold text-slate-900 mb-6">Question Answering Breakdown</h3>
-                <div className="h-72">
-                  <Bar data={costBreakdownChartData} options={stackedChartOptions} />
-                </div>
-              </div>
-            )}
-
-            {/* 3. Average Cost per Category / Sub-Category */}
+            {/* 2. Average Cost per Category / Sub-Category */}
             {categoryAverages.length > 0 && (
               <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <h3 className="text-lg font-semibold text-slate-900 mb-6">Avg Daily Cost by Category</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Avg Daily Cost</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Category</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Main Category</p>
                     <div className="space-y-3">
                       {categoryAverages.map((item) => {
                         const max = categoryAverages[0].avgCost
@@ -438,7 +504,7 @@ export default function CostPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Sub-Category</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Question Answering Sub-Category</p>
                     <div className="space-y-3">
                       {subCatAverages.map((item) => {
                         const max = subCatAverages[0].avgCost
@@ -462,9 +528,9 @@ export default function CostPage() {
               </div>
             )}
 
-            {/* 4. Daily Token Usage - Removed */}
+            {/* 3. Daily Token Usage - Removed */}
 
-            {/* 5. Monthly Cost Summary */}
+            {/* 4. Monthly Cost Summary */}
             <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
               <h3 className="text-lg font-semibold text-slate-900 mb-6">Monthly Cost (USD)</h3>
               <div className="h-72">

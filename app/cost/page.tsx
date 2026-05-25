@@ -314,6 +314,7 @@ export default function CostPage() {
     'Other': 0,
   }
   const questionAnsweringSubCategoryTotals: Record<string, number> = {}
+  const otherDetailAggTotals: Record<string, number> = {}
   normalizedDailyData.forEach((day) => {
     MAIN_CATEGORIES.forEach((category) => {
       categoryTotals[category] = (categoryTotals[category] ?? 0) + day.normalized.categoryTotals[category]
@@ -322,11 +323,18 @@ export default function CostPage() {
     Object.entries(day.normalized.questionAnsweringSubCategoryTotals).forEach(([subCategory, cost]) => {
       questionAnsweringSubCategoryTotals[subCategory] = (questionAnsweringSubCategoryTotals[subCategory] ?? 0) + cost
     })
+
+    Object.entries(day.normalized.otherDetailTotals).forEach(([label, cost]) => {
+      otherDetailAggTotals[label] = (otherDetailAggTotals[label] ?? 0) + cost
+    })
   })
   const categoryAverages = Object.entries(categoryTotals)
     .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
     .sort((a, b) => b.avgCost - a.avgCost)
   const subCatAverages = Object.entries(questionAnsweringSubCategoryTotals)
+    .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
+    .sort((a, b) => b.avgCost - a.avgCost)
+  const otherDetailAverages = Object.entries(otherDetailAggTotals)
     .map(([name, total]) => ({ name, avgCost: daysWithBreakdown > 0 ? total / daysWithBreakdown : 0 }))
     .sort((a, b) => b.avgCost - a.avgCost)
 
@@ -367,11 +375,22 @@ export default function CostPage() {
           afterBody: (items: Array<{ dataIndex: number }>) => {
             const day = normalizedDailyData[items[0]?.dataIndex]
             if (!day) return []
+            const lines: string[] = []
+            const qaItems = Object.entries(day.normalized.questionAnsweringSubCategoryTotals)
+              .filter(([, cost]) => cost > 0)
+              .sort((a, b) => b[1] - a[1])
+            if (qaItems.length > 0) {
+              lines.push('', 'Question Answering breakdown:')
+              qaItems.forEach(([label, cost]) => lines.push(`  ${formatLabel(label)}: ${formatUsd(cost)}`))
+            }
             const otherItems = Object.entries(day.normalized.otherDetailTotals)
               .filter(([, cost]) => cost > 0)
               .sort((a, b) => b[1] - a[1])
-            if (otherItems.length === 0) return []
-            return ['', 'Other breakdown:', ...otherItems.map(([label, cost]) => `  ${label}: ${formatUsd(cost)}`)]
+            if (otherItems.length > 0) {
+              lines.push('', 'Other breakdown:')
+              otherItems.forEach(([label, cost]) => lines.push(`  ${label}: ${formatUsd(cost)}`))
+            }
+            return lines
           },
           footer: (items: Array<{ dataIndex: number }>) => {
             const day = normalizedDailyData[items[0]?.dataIndex]
@@ -437,7 +456,7 @@ export default function CostPage() {
             {categoryAverages.length > 0 && (
               <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
                 <h3 className="text-lg font-semibold text-slate-900 mb-6">Avg Daily Cost</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Main Category</p>
                     <div className="space-y-3">
@@ -473,6 +492,26 @@ export default function CostPage() {
                             </div>
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">By Other Sub-Category</p>
+                    <div className="space-y-3">
+                      {otherDetailAverages.map((item) => {
+                        const max = otherDetailAverages[0]?.avgCost ?? 0
+                        const pct = max > 0 ? (item.avgCost / max) * 100 : 0
+                        return (
+                          <div key={item.name}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-slate-600">{item.name}</span>
+                              <span className="text-xs font-medium text-slate-700">${item.avgCost.toFixed(4)}</span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-slate-400" style={{ width: `${pct}%` }} />
                             </div>
                           </div>
                         )

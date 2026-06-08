@@ -56,13 +56,23 @@ export const useUserStore = create<UserStore>((set, get) => ({
         return
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, kawo_token, kawo_org_id, kawo_brand_id, kawo_api_url')
-        .eq('id', user.id)
-        .maybeSingle()
+      // Display name lives on `profiles`; KAWO context lives on the
+      // owner-only `user_kawo_credentials` table (kept off `profiles` so the
+      // team-readable profile rows don't leak each user's API token).
+      const [{ data: dbProfile }, { data: creds }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_kawo_credentials')
+          .select('kawo_token, kawo_org_id, kawo_brand_id, kawo_api_url')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
 
-      if (data) {
+      if (dbProfile || creds) {
         // Merge DB profile with local environment overrides
         // This mirrors hi-kevin behavior where local envs can override/supply context
         const envBrandId = process.env.NEXT_PUBLIC_KAWO_BRAND_ID
@@ -70,16 +80,16 @@ export const useUserStore = create<UserStore>((set, get) => ({
         const envOrgId = process.env.NEXT_PUBLIC_KAWO_ORG_ID
         const envApiUrl = process.env.NEXT_PUBLIC_KAWO_API_URL
 
-        set({ 
+        set({
           profile: {
             id: user.id,
-            full_name: data.full_name,
-            email: data.email || user.email || null,
-            kawo_token: envToken || data.kawo_token,
-            kawo_org_id: envOrgId || data.kawo_org_id,
-            kawo_brand_id: envBrandId || data.kawo_brand_id,
-            kawo_api_url: envApiUrl || data.kawo_api_url
-          } 
+            full_name: dbProfile?.name ?? null,
+            email: dbProfile?.email || user.email || null,
+            kawo_token: envToken || creds?.kawo_token || null,
+            kawo_org_id: envOrgId || creds?.kawo_org_id || null,
+            kawo_brand_id: envBrandId || creds?.kawo_brand_id || null,
+            kawo_api_url: envApiUrl || creds?.kawo_api_url || null
+          }
         })
       } else {
          // Even if no DB profile, allow local env to provide context (useful for dev)

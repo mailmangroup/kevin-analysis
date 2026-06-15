@@ -49,6 +49,7 @@ export const v0_8_9: Release = {
         'Image attachments in chat now use cached signed URLs that refresh automatically, so images stay available across longer conversations.',
       type: 'improvement',
       scope: 'Kevin Chat',
+      frontendEnabled: false,
     },
     {
       title: 'Upgraded to qwen3.6 models',
@@ -62,8 +63,7 @@ export const v0_8_9: Release = {
       description:
         'Internal monitoring now separates user cancellations from real failures and focuses chat QA analysis on tool usage and answer quality.',
       type: 'improvement',
-      scope: 'Ops & Analytics',
-      frontendEnabled: false,
+      scope: 'Ops & Analytics'
     },
   ],
 }

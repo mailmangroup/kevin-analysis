@@ -18,6 +18,7 @@ export const translations = {
     'nav.cost': 'Cost',
     'nav.retention': 'Retention',
     'nav.releases': 'Releases',
+    'nav.settings': 'Settings',
     'nav.logout': 'Logout',
     
     // Brand
@@ -151,6 +152,7 @@ export const translations = {
     'nav.cost': '成本',
     'nav.retention': '留存',
     'nav.releases': '发布',
+    'nav.settings': '设置',
     'nav.logout': '退出',
 
     // Brand

@@ -245,7 +245,7 @@ export default function RetentionPage() {
 
       rawData.forEach(record => {
         // Skip records with null/undefined cohort
-        if (!record?.cohort) return
+        if (!record?.cohort || record.cohort === 'undefined' || record.cohort === 'null') return
 
         if (!cohortsMap[record.cohort]) {
           cohortsMap[record.cohort] = {
@@ -263,7 +263,7 @@ export default function RetentionPage() {
       })
 
       return Object.values(cohortsMap)
-        .filter(c => c.cohort) // Filter out any entries with null/undefined cohort
+        .filter(c => c.cohort && c.cohort !== 'undefined' && c.cohort !== 'null') // Filter out any entries with null/undefined cohort
         .sort((a, b) => (b.cohort || '').localeCompare(a.cohort || ''))
   }, [rawData])
 
@@ -271,6 +271,7 @@ export default function RetentionPage() {
     if (!Array.isArray(rawData) || rawData.length === 0) return ''
     let latestPeriod = ''
     rawData.forEach(r => {
+      if (!r?.cohort || r.cohort === 'undefined' || r.cohort === 'null') return
       if (r?.activity_period && r.activity_period > latestPeriod) latestPeriod = r.activity_period
     })
     return latestPeriod
@@ -282,11 +283,14 @@ export default function RetentionPage() {
 
      let maxIdx = 0
      rawData.forEach(record => {
-        if (!record?.cohort) return
+        if (!record?.cohort || record.cohort === 'undefined' || record.cohort === 'null') return
         const diff = getDiff(record.cohort, globalLatestPeriod, period)
         if (diff > maxIdx) maxIdx = diff
      })
-     setMaxPeriods(maxIdx)
+     
+     // Cap the number of columns to improve UI/UX
+     const MAX_COLUMNS = period === 'week' ? 24 : 12
+     setMaxPeriods(Math.min(maxIdx, MAX_COLUMNS))
   }, [rawData, period, globalLatestPeriod])
 
   // Helper to get color intensity based on percentage - warm amber palette
@@ -532,8 +536,8 @@ export default function RetentionPage() {
                       {t('retention.totalUsers')}
                     </th>
                     {columns.map((col) => (
-                       <th key={col} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[50px]">
-                         {period === 'week' ? t('retention.week') : t('retention.month')} {col} {period === 'week' ? t('retention.weekSuffix') : t('retention.monthSuffix')}
+                       <th key={col} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[40px]" title={`${period === 'week' ? t('retention.week') : t('retention.month')} ${col} ${period === 'week' ? t('retention.weekSuffix') : t('retention.monthSuffix')}`}>
+                         {period === 'week' ? 'W' : 'M'}{col}
                        </th>
                      ))}
                   </tr>

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages } from 'lucide-react'
+import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages, Settings } from 'lucide-react'
 import { useLanguageStore } from '@/lib/store/language-store'
 
 const navItems = [
@@ -82,6 +82,18 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <Link
+              href="/settings"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                pathname === '/settings'
+                  ? 'text-primary-600 bg-primary-50'
+                  : 'text-slate-500 hover:text-primary-600 hover:bg-primary-50'
+              }`}
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('nav.settings') || 'Settings'}</span>
+            </Link>
             <button
               onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-500

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/lib/store/user-store'
+import { Globe, CheckCircle, Loader2 } from 'lucide-react'
 
 // kevin-analysis always talks to the staging backend; the URL is fixed and not
 // shown to the user. Only the per-user KAWO token is needed (no org/brand).
@@ -27,10 +28,23 @@ export function KawoTokenModal() {
       const res = await fetch(`${KAWO_API_URL}/me`, {
         headers: { Authorization: `Bearer ${token.trim()}` },
       })
-      if (!res.ok) throw new Error(`Connection failed (HTTP ${res.status}).`)
-      setStatus({ ok: true, msg: 'Connection successful.' })
+      if (!res.ok) {
+        let errorData: any = {}
+        try {
+          errorData = await res.json()
+        } catch {
+          try {
+            const text = await res.text()
+            errorData = { error: res.statusText, text }
+          } catch {
+            errorData = { error: res.statusText }
+          }
+        }
+        throw new Error(errorData.error || errorData.message || res.statusText)
+      }
+      setStatus({ ok: true, msg: 'Successfully connected to KAWO API.' })
     } catch (e: any) {
-      setStatus({ ok: false, msg: e?.message || 'Connection failed. Check your token.' })
+      setStatus({ ok: false, msg: e?.message || 'Could not connect to KAWO. Check your credentials.' })
     } finally {
       setTesting(false)
     }
@@ -98,7 +112,10 @@ export function KawoTokenModal() {
             className={inputCls}
             placeholder="Enter your user token"
             value={token}
-            onChange={(e) => setToken(e.target.value)}
+            onChange={(e) => {
+              setToken(e.target.value)
+              if (status) setStatus(null)
+            }}
           />
         </div>
 
@@ -119,9 +136,20 @@ export function KawoTokenModal() {
             type="button"
             onClick={testConnection}
             disabled={testing || saving}
-            className="flex-1 py-2.5 px-4 bg-white border border-slate-300 text-slate-900 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+            className={`flex flex-1 items-center justify-center py-2.5 px-4 bg-white border font-medium rounded-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
+              status?.ok
+                ? 'border-emerald-500 text-emerald-600 hover:bg-emerald-50'
+                : 'border-slate-300 text-slate-900 hover:bg-slate-50'
+            }`}
           >
-            {testing ? 'Testing…' : 'Test connection'}
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : status?.ok ? (
+              <CheckCircle className="h-4 w-4 mr-2" />
+            ) : (
+              <Globe className="h-4 w-4 mr-2" />
+            )}
+            {testing ? 'Testing…' : status?.ok ? 'Connected' : 'Test connection'}
           </button>
           <button
             type="button"

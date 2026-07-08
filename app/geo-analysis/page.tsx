@@ -73,36 +73,7 @@ export default function GeoAnalysisPage() {
     fetcher
   )
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-mesh">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-slate-200 rounded w-1/4 mb-10"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-24 bg-white rounded-2xl shadow-sm"></div>
-              ))}
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-mesh">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
-          <div className="text-red-500">Failed to load GEO data.</div>
-        </main>
-      </div>
-    )
-  }
-
-  const { rolling, daily } = data
+  const { rolling, daily } = data || {}
   const grandTotals = rolling?.grand_totals || { total: 0, success: 0, pending: 0, failed: 0 }
   const successRate = grandTotals.total > 0 ? ((grandTotals.success / grandTotals.total) * 100).toFixed(1) : 0
 
@@ -142,6 +113,35 @@ export default function GeoAnalysisPage() {
       return matchDate && matchDep && matchOrg && matchProj && matchPlat
     })
   }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-mesh">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-slate-200 rounded w-1/4 mb-10"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-24 bg-white rounded-2xl shadow-sm"></div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-mesh">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <div className="text-red-500">Failed to load GEO data.</div>
+        </main>
+      </div>
+    )
+  }
 
   const kpis = [
     { label: 'Total', value: grandTotals.total, color: 'text-slate-900' },

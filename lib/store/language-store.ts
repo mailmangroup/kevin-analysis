@@ -14,10 +14,12 @@ export const translations = {
     // Navigation
     'nav.overview': 'Overview',
     'nav.analysis': 'Analysis',
+    'nav.kevinAnalysis': 'Kevin',
     'nav.questions': 'Questions',
     'nav.cost': 'Cost',
     'nav.retention': 'Retention',
     'nav.releases': 'Releases',
+    'nav.geoAnalysis': 'GEO',
     'nav.settings': 'Settings',
     'nav.logout': 'Logout',
     
@@ -148,10 +150,12 @@ export const translations = {
     // Navigation
     'nav.overview': '总览',
     'nav.analysis': '分析',
+    'nav.kevinAnalysis': 'Kevin',
     'nav.questions': '问题',
     'nav.cost': '成本',
     'nav.retention': '留存',
     'nav.releases': '发布',
+    'nav.geoAnalysis': 'GEO',
     'nav.settings': '设置',
     'nav.logout': '退出',
 

@@ -4,12 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages, Settings } from 'lucide-react'
+import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages, Settings, Globe } from 'lucide-react'
 import { useLanguageStore } from '@/lib/store/language-store'
 
 const navItems = [
   { href: '/', labelKey: 'nav.overview', icon: LayoutDashboard },
-  { href: '/analysis', labelKey: 'nav.analysis', icon: BarChart3 },
+  { 
+    id: 'analysis-group', 
+    labelKey: 'nav.analysis', 
+    icon: BarChart3,
+    subItems: [
+      { href: '/analysis', labelKey: 'nav.kevinAnalysis' },
+      { href: '/geo-analysis', labelKey: 'nav.geoAnalysis' },
+    ]
+  },
   { href: '/questions', labelKey: 'nav.questions', icon: HelpCircle },
   { href: '/cost', labelKey: 'nav.cost', icon: DollarSign },
   { href: '/retention', labelKey: 'nav.retention', icon: Users },
@@ -56,11 +64,56 @@ export function Navbar() {
           <div className="hidden sm:flex sm:items-center sm:gap-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const active = isActive(item.href)
+              
+              if (item.subItems) {
+                const isActiveGroup = item.subItems.some(sub => isActive(sub.href))
+                return (
+                  <div key={item.id} className="relative group">
+                    <button
+                      className={`
+                        relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
+                        transition-all duration-200
+                        ${isActiveGroup
+                          ? 'text-primary-700 bg-primary-50'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }
+                      `}
+                    >
+                      <Icon className={`w-4 h-4 ${isActiveGroup ? 'text-primary-600' : ''}`} />
+                      {t(item.labelKey)}
+                      <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      {isActiveGroup && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-500" />
+                      )}
+                    </button>
+                    <div className="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg rounded-xl overflow-hidden min-w-[140px] py-1">
+                        {item.subItems.map(sub => (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            className={`block px-4 py-2.5 text-sm transition-colors ${
+                              isActive(sub.href) 
+                                ? 'text-primary-600 bg-primary-50/50 font-medium' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                            }`}
+                          >
+                            {t(sub.labelKey)}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              const active = isActive(item.href!)
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href!}
                   className={`
                     relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                     transition-all duration-200
@@ -116,9 +169,18 @@ export function Navbar() {
       </div>
 
       {/* Mobile Navigation */}
-      <div className="sm:hidden border-t border-slate-200/50 px-2 py-2">
-        <div className="flex items-center justify-around">
-          {navItems.map((item) => {
+      <div className="sm:hidden border-t border-slate-200/50 px-2 py-2 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 min-w-max px-2">
+          {navItems.flatMap((item) => {
+            if (item.subItems) {
+              return item.subItems.map(sub => ({
+                href: sub.href,
+                labelKey: sub.labelKey,
+                icon: item.icon
+              }))
+            }
+            return [item as any]
+          }).map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
             return (
@@ -126,7 +188,7 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium
+                  flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-lg text-[10px] font-medium
                   transition-all duration-200
                   ${active
                     ? 'text-primary-700 bg-primary-50'
@@ -135,7 +197,7 @@ export function Navbar() {
                 `}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : ''}`} />
-                {t(item.labelKey)}
+                <span className="truncate w-full text-center px-1">{t(item.labelKey)}</span>
               </Link>
             )
           })}

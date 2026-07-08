@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Navbar } from '@/components/Navbar'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
@@ -61,6 +61,12 @@ export default function GeoAnalysisPage() {
   const { profile } = useUserStore()
   const apiUrl = profile?.kawo_api_url
   
+  const [filterDate, setFilterDate] = useState('')
+  const [filterDeployment, setFilterDeployment] = useState('')
+  const [filterOrg, setFilterOrg] = useState('')
+  const [filterProject, setFilterProject] = useState('')
+  const [filterPlatform, setFilterPlatform] = useState('')
+
   // Note: Expecting the backend at /phoenix/geo/reports to return { rolling, daily }
   const { data, error, isLoading } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/geo/reports` : null, 
@@ -99,6 +105,43 @@ export default function GeoAnalysisPage() {
   const { rolling, daily } = data
   const grandTotals = rolling?.grand_totals || { total: 0, success: 0, pending: 0, failed: 0 }
   const successRate = grandTotals.total > 0 ? ((grandTotals.success / grandTotals.total) * 100).toFixed(1) : 0
+
+  const drilldownRows = useMemo(() => {
+    if (!daily) return []
+    const rows: any[] = []
+    daily.forEach((day: any) => {
+      day.targets?.forEach((target: any) => {
+        target.details?.forEach((detail: any) => {
+          const stats = detail.raw_statuses ? computeStats(detail.raw_statuses) : {
+            success: detail.success || 0,
+            pending: detail.pending || 0,
+            failed: detail.failed || 0,
+            total: (detail.success || 0) + (detail.pending || 0) + (detail.failed || 0)
+          }
+          rows.push({
+            date: day.date,
+            deployment: target.name,
+            org: detail.org_name,
+            project: detail.project_name,
+            platform: detail.platform,
+            stats
+          })
+        })
+      })
+    })
+    return rows
+  }, [daily])
+
+  const filteredDrilldownRows = useMemo(() => {
+    return drilldownRows.filter(row => {
+      const matchDate = !filterDate || row.date?.toLowerCase().includes(filterDate.toLowerCase())
+      const matchDep = !filterDeployment || row.deployment?.toLowerCase().includes(filterDeployment.toLowerCase())
+      const matchOrg = !filterOrg || row.org?.toLowerCase().includes(filterOrg.toLowerCase())
+      const matchProj = !filterProject || row.project?.toLowerCase().includes(filterProject.toLowerCase())
+      const matchPlat = !filterPlatform || row.platform?.toLowerCase().includes(filterPlatform.toLowerCase())
+      return matchDate && matchDep && matchOrg && matchProj && matchPlat
+    })
+  }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
 
   const kpis = [
     { label: 'Total', value: grandTotals.total, color: 'text-slate-900' },
@@ -217,8 +260,45 @@ export default function GeoAnalysisPage() {
 
         {/* Drilldown Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Daily Drilldown</h2>
+            <div className="flex flex-wrap gap-2">
+              <input 
+                type="text" 
+                placeholder="Filter Date" 
+                value={filterDate} 
+                onChange={e => setFilterDate(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              />
+              <input 
+                type="text" 
+                placeholder="Filter Deployment" 
+                value={filterDeployment} 
+                onChange={e => setFilterDeployment(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              />
+              <input 
+                type="text" 
+                placeholder="Filter Org" 
+                value={filterOrg} 
+                onChange={e => setFilterOrg(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              />
+              <input 
+                type="text" 
+                placeholder="Filter Project" 
+                value={filterProject} 
+                onChange={e => setFilterProject(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              />
+              <input 
+                type="text" 
+                placeholder="Filter Platform" 
+                value={filterPlatform} 
+                onChange={e => setFilterPlatform(e.target.value)}
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto max-h-96">
             <table className="w-full text-sm text-left">
@@ -236,31 +316,19 @@ export default function GeoAnalysisPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {daily?.map((day: any) => 
-                  day.targets?.map((target: any) => 
-                    target.details?.map((detail: any, dIdx: number) => {
-                      const stats = detail.raw_statuses ? computeStats(detail.raw_statuses) : {
-                        success: detail.success || 0,
-                        pending: detail.pending || 0,
-                        failed: detail.failed || 0,
-                        total: (detail.success || 0) + (detail.pending || 0) + (detail.failed || 0)
-                      }
-                      return (
-                        <tr key={`${day.date}-${target.name}-${dIdx}`} className="hover:bg-slate-50/50">
-                          <td className="px-6 py-3 whitespace-nowrap text-slate-500">{day.date}</td>
-                          <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-900">{target.name}</td>
-                          <td className="px-6 py-3 whitespace-nowrap">{detail.org_name}</td>
-                          <td className="px-6 py-3 whitespace-nowrap">{detail.project_name}</td>
-                          <td className="px-6 py-3 whitespace-nowrap">{detail.platform}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-right">{stats.total}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-right text-green-600">{stats.success}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-right text-amber-500">{stats.pending}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-right text-red-600">{stats.failed}</td>
-                        </tr>
-                      )
-                    })
-                  )
-                )}
+                {filteredDrilldownRows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50">
+                    <td className="px-6 py-3 whitespace-nowrap text-slate-500">{row.date}</td>
+                    <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-900">{row.deployment}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{row.org}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{row.project}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{row.platform}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-right">{row.stats.total}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-right text-green-600">{row.stats.success}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-right text-amber-500">{row.stats.pending}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-right text-red-600">{row.stats.failed}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

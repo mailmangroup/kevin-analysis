@@ -2,9 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Languages, Settings, Globe } from 'lucide-react'
+import { LayoutDashboard, HelpCircle, DollarSign, Users, BarChart3, Rocket, Settings, Globe } from 'lucide-react'
 import { useLanguageStore } from '@/lib/store/language-store'
 
 const navItems = [
@@ -25,16 +23,8 @@ const navItems = [
 ]
 
 export function Navbar() {
-  const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
-  const { language, setLanguage, t } = useLanguageStore()
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
+  const { t } = useLanguageStore()
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -147,23 +137,6 @@ export function Navbar() {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">{t('nav.settings') || 'Settings'}</span>
             </Link>
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-500
-                       hover:text-primary-600 hover:bg-primary-50 transition-all duration-200"
-              title={language === 'en' ? 'Switch to Chinese' : 'Switch to English'}
-            >
-              <Languages className="w-4 h-4" />
-              <span className="hidden sm:inline">{language === 'en' ? '中' : 'EN'}</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-500
-                       hover:text-red-600 hover:bg-red-50 transition-all duration-200"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('nav.logout')}</span>
-            </button>
           </div>
         </div>
       </div>

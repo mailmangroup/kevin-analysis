@@ -1,16 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { useUserStore } from '@/lib/store/user-store'
+import { useLanguageStore } from '@/lib/store/language-store'
 import { createClient } from '@/lib/supabase/client'
-import { Globe, CheckCircle, Loader2, Save, Key } from 'lucide-react'
+import { Globe, CheckCircle, Loader2, Save, Key, Languages, LogOut, UserCircle } from 'lucide-react'
 
 // kevin-analysis always talks to the staging backend; the URL is fixed and not
 // shown to the user. Only the per-user KAWO token is needed (no org/brand).
 const KAWO_API_URL = 'https://staging-kevin.kawo.com'
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { language, setLanguage, t } = useLanguageStore()
   const { profile, setProfile, fetchProfile } = useUserStore()
   const [token, setToken] = useState('')
   const [saving, setSaving] = useState(false)
@@ -26,6 +30,13 @@ export default function SettingsPage() {
       setToken(profile.kawo_token)
     }
   }, [profile])
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   const testConnection = async () => {
     if (!token.trim()) {
@@ -111,10 +122,12 @@ export default function SettingsPage() {
       <main className="pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
-          <p className="text-slate-500 mt-2">Manage your connection to KAWO API</p>
+          <p className="text-slate-500 mt-2">Manage your connection to KAWO API and preferences</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 max-w-3xl">
+        <div className="max-w-3xl space-y-6">
+          {/* KAWO Connection */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-primary-50 rounded-full">
               <Key className="h-5 w-5 text-primary-600" />
@@ -188,6 +201,76 @@ export default function SettingsPage() {
                 )}
                 {testing ? 'Testing…' : (status?.ok && status.msg.includes('Successfully connected') ? 'Connected' : 'Test Connection')}
               </button>
+            </div>
+          </div>
+          </div>
+
+          {/* Preferences */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-primary-50 rounded-full">
+                <Languages className="h-5 w-5 text-primary-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Preferences</h2>
+                <p className="text-sm text-slate-500">Manage your language and display settings</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700">Language</h3>
+                  <p className="text-xs text-slate-500">Choose your preferred language for the interface</p>
+                </div>
+                <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setLanguage('en')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      language === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => setLanguage('zh')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      language === 'zh' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    中文
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Account */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-red-50 rounded-full">
+                <UserCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Account</h2>
+                <p className="text-sm text-slate-500">Manage your account session</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700">Sign Out</h3>
+                  <p className="text-xs text-slate-500">Log out of your current session</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg text-sm font-medium transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t('nav.logout')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

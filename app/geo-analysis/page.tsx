@@ -68,6 +68,7 @@ export default function GeoAnalysisPage() {
   const [filterOrg, setFilterOrg] = useState('')
   const [filterProject, setFilterProject] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('')
+  const [trendPlatform, setTrendPlatform] = useState('')
 
   // Note: Expecting the backend at /phoenix/geo/reports to return { rolling, daily }
   const { data, error, isLoading } = useSWR(
@@ -139,6 +140,10 @@ export default function GeoAnalysisPage() {
   const availableProjects = useMemo(() => getAvailableOptions('project'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterPlatform])
   const availablePlatforms = useMemo(() => getAvailableOptions('platform'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject])
 
+  const trendPlatforms = useMemo(() => {
+    return Array.from(new Set(drilldownRows.map(r => r.platform))).filter(Boolean).sort()
+  }, [drilldownRows])
+
   useEffect(() => {
     if (filterDate && !availableDates.includes(filterDate)) setFilterDate('')
     if (filterDeployment && !availableDeployments.includes(filterDeployment)) setFilterDeployment('')
@@ -196,33 +201,89 @@ export default function GeoAnalysisPage() {
   ]
 
   // Chart data
-  const chartLabels = rolling?.daily_reports?.map((r: any) => r.date) || []
-  const chartData = {
-    labels: chartLabels,
-    datasets: [
-      {
-        label: 'Success',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.success || 0) || [],
-        borderColor: '#16a34a',
-        backgroundColor: '#16a34a',
-        tension: 0.3,
-      },
-      {
-        label: 'Pending',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.pending || 0) || [],
-        borderColor: '#f59e0b',
-        backgroundColor: '#f59e0b',
-        tension: 0.3,
-      },
-      {
-        label: 'Failed',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.failed || 0) || [],
-        borderColor: '#dc2626',
-        backgroundColor: '#dc2626',
-        tension: 0.3,
+  const chartData = useMemo(() => {
+    const dates = rolling?.daily_reports?.map((r: any) => r.date) || []
+    
+    if (!trendPlatform) {
+      return {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Success',
+            data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.success || 0) || [],
+            borderColor: '#16a34a',
+            backgroundColor: '#16a34a',
+            tension: 0.3,
+          },
+          {
+            label: 'Pending',
+            data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.pending || 0) || [],
+            borderColor: '#f59e0b',
+            backgroundColor: '#f59e0b',
+            tension: 0.3,
+          },
+          {
+            label: 'Failed',
+            data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.failed || 0) || [],
+            borderColor: '#dc2626',
+            backgroundColor: '#dc2626',
+            tension: 0.3,
+          }
+        ]
       }
-    ]
-  }
+    }
+
+    const aggregated: Record<string, { success: number, pending: number, failed: number }> = {}
+    dates.forEach((d: string) => {
+      aggregated[d] = { success: 0, pending: 0, failed: 0 }
+    })
+
+    drilldownRows.forEach(row => {
+      if (row.platform === trendPlatform) {
+        if (aggregated[row.date]) {
+          aggregated[row.date].success += row.stats.success
+          aggregated[row.date].pending += row.stats.pending
+          aggregated[row.date].failed += row.stats.failed
+        } else {
+          aggregated[row.date] = { 
+            success: row.stats.success, 
+            pending: row.stats.pending, 
+            failed: row.stats.failed 
+          }
+          if (!dates.includes(row.date)) dates.push(row.date)
+        }
+      }
+    })
+
+    const sortedDates = dates.sort()
+
+    return {
+      labels: sortedDates,
+      datasets: [
+        {
+          label: 'Success',
+          data: sortedDates.map(d => aggregated[d].success),
+          borderColor: '#16a34a',
+          backgroundColor: '#16a34a',
+          tension: 0.3,
+        },
+        {
+          label: 'Pending',
+          data: sortedDates.map(d => aggregated[d].pending),
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b',
+          tension: 0.3,
+        },
+        {
+          label: 'Failed',
+          data: sortedDates.map(d => aggregated[d].failed),
+          borderColor: '#dc2626',
+          backgroundColor: '#dc2626',
+          tension: 0.3,
+        }
+      ]
+    }
+  }, [rolling, drilldownRows, trendPlatform])
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -286,7 +347,19 @@ export default function GeoAnalysisPage() {
 
         {/* Trend Chart */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">7-Day Trend</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <h2 className="text-lg font-semibold text-slate-900">7-Day Trend</h2>
+            <select
+              value={trendPlatform}
+              onChange={e => setTrendPlatform(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer w-full sm:w-auto min-w-[150px]"
+            >
+              <option value="">Platform (All)</option>
+              {trendPlatforms.map(plat => (
+                <option key={plat as string} value={plat as string}>{plat as string}</option>
+              ))}
+            </select>
+          </div>
           <div className="h-72">
             <Line 
               data={chartData} 

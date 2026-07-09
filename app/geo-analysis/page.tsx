@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Navbar } from '@/components/Navbar'
 import useSWR from 'swr'
 import { fetchWithAuth } from '@/lib/api'
@@ -117,7 +117,7 @@ export default function GeoAnalysisPage() {
     })
   }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
 
-  const getRowsForOption = (optionKey: DrilldownFilterKey) => {
+  const getRowsForOption = useCallback((optionKey: DrilldownFilterKey) => {
     return drilldownRows.filter(row => {
       const matchDate = optionKey === 'date' || !filterDate || row.date === filterDate
       const matchDep = optionKey === 'deployment' || !filterDeployment || row.deployment === filterDeployment
@@ -126,19 +126,19 @@ export default function GeoAnalysisPage() {
       const matchPlat = optionKey === 'platform' || !filterPlatform || row.platform === filterPlatform
       return matchDate && matchDep && matchOrg && matchProj && matchPlat
     })
-  }
+  }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
 
-  const getAvailableOptions = (optionKey: DrilldownFilterKey) => {
+  const getAvailableOptions = useCallback((optionKey: DrilldownFilterKey) => {
     return Array.from(new Set(getRowsForOption(optionKey).map(row => row[optionKey])))
       .filter(Boolean)
       .sort()
-  }
+  }, [getRowsForOption])
 
-  const availableDates = useMemo(() => getAvailableOptions('date'), [drilldownRows, filterDeployment, filterOrg, filterProject, filterPlatform])
-  const availableDeployments = useMemo(() => getAvailableOptions('deployment'), [drilldownRows, filterDate, filterOrg, filterProject, filterPlatform])
-  const availableOrgs = useMemo(() => getAvailableOptions('org'), [drilldownRows, filterDate, filterDeployment, filterProject, filterPlatform])
-  const availableProjects = useMemo(() => getAvailableOptions('project'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterPlatform])
-  const availablePlatforms = useMemo(() => getAvailableOptions('platform'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject])
+  const availableDates = useMemo(() => getAvailableOptions('date'), [getAvailableOptions])
+  const availableDeployments = useMemo(() => getAvailableOptions('deployment'), [getAvailableOptions])
+  const availableOrgs = useMemo(() => getAvailableOptions('org'), [getAvailableOptions])
+  const availableProjects = useMemo(() => getAvailableOptions('project'), [getAvailableOptions])
+  const availablePlatforms = useMemo(() => getAvailableOptions('platform'), [getAvailableOptions])
 
   const trendPlatforms = useMemo(() => {
     return Array.from(new Set(drilldownRows.map(r => r.platform))).filter(Boolean).sort()
@@ -162,43 +162,6 @@ export default function GeoAnalysisPage() {
     availableProjects,
     availablePlatforms,
   ])
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-mesh">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-slate-200 rounded w-1/4 mb-10"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-24 bg-white rounded-2xl shadow-sm"></div>
-              ))}
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-mesh">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
-          <div className="text-red-500">Failed to load GEO data.</div>
-        </main>
-      </div>
-    )
-  }
-
-  const kpis = [
-    { label: 'Total', value: grandTotals.total, color: 'text-slate-900' },
-    { label: 'Success', value: grandTotals.success, color: 'text-green-600' },
-    { label: 'Pending', value: grandTotals.pending, color: 'text-amber-500' },
-    { label: 'Failed', value: grandTotals.failed, color: 'text-red-600' },
-    { label: 'Success Rate', value: `${successRate}%`, color: 'text-blue-600' },
-  ]
 
   // Chart data
   const chartData = useMemo(() => {
@@ -284,6 +247,43 @@ export default function GeoAnalysisPage() {
       ]
     }
   }, [rolling, drilldownRows, trendPlatform])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-mesh">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-slate-200 rounded w-1/4 mb-10"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-24 bg-white rounded-2xl shadow-sm"></div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-mesh">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <div className="text-red-500">Failed to load GEO data.</div>
+        </main>
+      </div>
+    )
+  }
+
+  const kpis = [
+    { label: 'Total', value: grandTotals.total, color: 'text-slate-900' },
+    { label: 'Success', value: grandTotals.success, color: 'text-green-600' },
+    { label: 'Pending', value: grandTotals.pending, color: 'text-amber-500' },
+    { label: 'Failed', value: grandTotals.failed, color: 'text-red-600' },
+    { label: 'Success Rate', value: `${successRate}%`, color: 'text-blue-600' },
+  ]
 
   return (
     <div className="min-h-screen bg-mesh">

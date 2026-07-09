@@ -57,6 +57,8 @@ const computeStats = (rawStatuses: Record<string, number> = {}) => {
   return { success, pending, failed, total }
 }
 
+type DrilldownFilterKey = 'date' | 'deployment' | 'org' | 'project' | 'platform'
+
 export default function GeoAnalysisPage() {
   const { profile } = useUserStore()
   const apiUrl = profile?.kawo_api_url
@@ -114,15 +116,47 @@ export default function GeoAnalysisPage() {
     })
   }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
 
-  const availableDates = useMemo(() => {
-    if (!daily) return []
-    return Array.from(new Set(daily.map((d: any) => d.date)))
-  }, [daily])
+  const getRowsForOption = (optionKey: DrilldownFilterKey) => {
+    return drilldownRows.filter(row => {
+      const matchDate = optionKey === 'date' || !filterDate || row.date === filterDate
+      const matchDep = optionKey === 'deployment' || !filterDeployment || row.deployment === filterDeployment
+      const matchOrg = optionKey === 'org' || !filterOrg || row.org === filterOrg
+      const matchProj = optionKey === 'project' || !filterProject || row.project === filterProject
+      const matchPlat = optionKey === 'platform' || !filterPlatform || row.platform === filterPlatform
+      return matchDate && matchDep && matchOrg && matchProj && matchPlat
+    })
+  }
 
-  const availableDeployments = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.deployment))).filter(Boolean).sort(), [drilldownRows])
-  const availableOrgs = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.org))).filter(Boolean).sort(), [drilldownRows])
-  const availableProjects = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.project))).filter(Boolean).sort(), [drilldownRows])
-  const availablePlatforms = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.platform))).filter(Boolean).sort(), [drilldownRows])
+  const getAvailableOptions = (optionKey: DrilldownFilterKey) => {
+    return Array.from(new Set(getRowsForOption(optionKey).map(row => row[optionKey])))
+      .filter(Boolean)
+      .sort()
+  }
+
+  const availableDates = useMemo(() => getAvailableOptions('date'), [drilldownRows, filterDeployment, filterOrg, filterProject, filterPlatform])
+  const availableDeployments = useMemo(() => getAvailableOptions('deployment'), [drilldownRows, filterDate, filterOrg, filterProject, filterPlatform])
+  const availableOrgs = useMemo(() => getAvailableOptions('org'), [drilldownRows, filterDate, filterDeployment, filterProject, filterPlatform])
+  const availableProjects = useMemo(() => getAvailableOptions('project'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterPlatform])
+  const availablePlatforms = useMemo(() => getAvailableOptions('platform'), [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject])
+
+  useEffect(() => {
+    if (filterDate && !availableDates.includes(filterDate)) setFilterDate('')
+    if (filterDeployment && !availableDeployments.includes(filterDeployment)) setFilterDeployment('')
+    if (filterOrg && !availableOrgs.includes(filterOrg)) setFilterOrg('')
+    if (filterProject && !availableProjects.includes(filterProject)) setFilterProject('')
+    if (filterPlatform && !availablePlatforms.includes(filterPlatform)) setFilterPlatform('')
+  }, [
+    filterDate,
+    filterDeployment,
+    filterOrg,
+    filterProject,
+    filterPlatform,
+    availableDates,
+    availableDeployments,
+    availableOrgs,
+    availableProjects,
+    availablePlatforms,
+  ])
 
   if (isLoading) {
     return (

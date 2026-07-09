@@ -106,10 +106,10 @@ export default function GeoAnalysisPage() {
   const filteredDrilldownRows = useMemo(() => {
     return drilldownRows.filter(row => {
       const matchDate = !filterDate || row.date === filterDate
-      const matchDep = !filterDeployment || row.deployment?.toLowerCase().includes(filterDeployment.toLowerCase())
-      const matchOrg = !filterOrg || row.org?.toLowerCase().includes(filterOrg.toLowerCase())
-      const matchProj = !filterProject || row.project?.toLowerCase().includes(filterProject.toLowerCase())
-      const matchPlat = !filterPlatform || row.platform?.toLowerCase().includes(filterPlatform.toLowerCase())
+      const matchDep = !filterDeployment || row.deployment === filterDeployment
+      const matchOrg = !filterOrg || row.org === filterOrg
+      const matchProj = !filterProject || row.project === filterProject
+      const matchPlat = !filterPlatform || row.platform === filterPlatform
       return matchDate && matchDep && matchOrg && matchProj && matchPlat
     })
   }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
@@ -118,6 +118,11 @@ export default function GeoAnalysisPage() {
     if (!daily) return []
     return Array.from(new Set(daily.map((d: any) => d.date)))
   }, [daily])
+
+  const availableDeployments = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.deployment))).filter(Boolean).sort(), [drilldownRows])
+  const availableOrgs = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.org))).filter(Boolean).sort(), [drilldownRows])
+  const availableProjects = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.project))).filter(Boolean).sort(), [drilldownRows])
+  const availablePlatforms = useMemo(() => Array.from(new Set(drilldownRows.map(r => r.platform))).filter(Boolean).sort(), [drilldownRows])
 
   if (isLoading) {
     return (
@@ -278,34 +283,46 @@ export default function GeoAnalysisPage() {
                   <option key={date as string} value={date as string}>{date as string}</option>
                 ))}
               </select>
-              <input 
-                type="text" 
-                placeholder="Filter Deployment" 
-                value={filterDeployment} 
+              <select
+                value={filterDeployment}
                 onChange={e => setFilterDeployment(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              />
-              <input 
-                type="text" 
-                placeholder="Filter Org" 
-                value={filterOrg} 
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+              >
+                <option value="">Filter Deployment (All)</option>
+                {availableDeployments.map(dep => (
+                  <option key={dep as string} value={dep as string}>{dep as string}</option>
+                ))}
+              </select>
+              <select
+                value={filterOrg}
                 onChange={e => setFilterOrg(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              />
-              <input 
-                type="text" 
-                placeholder="Filter Project" 
-                value={filterProject} 
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+              >
+                <option value="">Filter Org (All)</option>
+                {availableOrgs.map(org => (
+                  <option key={org as string} value={org as string}>{org as string}</option>
+                ))}
+              </select>
+              <select
+                value={filterProject}
                 onChange={e => setFilterProject(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              />
-              <input 
-                type="text" 
-                placeholder="Filter Platform" 
-                value={filterPlatform} 
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+              >
+                <option value="">Filter Project (All)</option>
+                {availableProjects.map(proj => (
+                  <option key={proj as string} value={proj as string}>{proj as string}</option>
+                ))}
+              </select>
+              <select
+                value={filterPlatform}
                 onChange={e => setFilterPlatform(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              />
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+              >
+                <option value="">Filter Platform (All)</option>
+                {availablePlatforms.map(plat => (
+                  <option key={plat as string} value={plat as string}>{plat as string}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="overflow-x-auto max-h-96">
@@ -328,8 +345,8 @@ export default function GeoAnalysisPage() {
                   <tr key={idx} className="hover:bg-slate-50/50">
                     <td className="px-6 py-3 whitespace-nowrap text-slate-500">{row.date}</td>
                     <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-900">{row.deployment}</td>
-                    <td className="px-6 py-3 whitespace-nowrap">{row.org}</td>
-                    <td className="px-6 py-3 whitespace-nowrap">{row.project}</td>
+                    <td className="px-6 py-3 whitespace-nowrap max-w-[150px] truncate" title={row.org}>{row.org}</td>
+                    <td className="px-6 py-3 whitespace-nowrap max-w-[200px] truncate" title={row.project}>{row.project}</td>
                     <td className="px-6 py-3 whitespace-nowrap">{row.platform}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-right">{row.stats.total}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-right text-green-600">{row.stats.success}</td>

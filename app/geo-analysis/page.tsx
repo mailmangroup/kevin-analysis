@@ -105,7 +105,7 @@ export default function GeoAnalysisPage() {
 
   const filteredDrilldownRows = useMemo(() => {
     return drilldownRows.filter(row => {
-      const matchDate = !filterDate || row.date?.toLowerCase().includes(filterDate.toLowerCase())
+      const matchDate = !filterDate || row.date === filterDate
       const matchDep = !filterDeployment || row.deployment?.toLowerCase().includes(filterDeployment.toLowerCase())
       const matchOrg = !filterOrg || row.org?.toLowerCase().includes(filterOrg.toLowerCase())
       const matchProj = !filterProject || row.project?.toLowerCase().includes(filterProject.toLowerCase())
@@ -113,6 +113,11 @@ export default function GeoAnalysisPage() {
       return matchDate && matchDep && matchOrg && matchProj && matchPlat
     })
   }, [drilldownRows, filterDate, filterDeployment, filterOrg, filterProject, filterPlatform])
+
+  const availableDates = useMemo(() => {
+    if (!daily) return []
+    return Array.from(new Set(daily.map((d: any) => d.date)))
+  }, [daily])
 
   if (isLoading) {
     return (
@@ -152,27 +157,27 @@ export default function GeoAnalysisPage() {
   ]
 
   // Chart data
-  const chartLabels = rolling?.daily_reports?.map((r: any) => r.date).reverse() || []
+  const chartLabels = rolling?.daily_reports?.map((r: any) => r.date) || []
   const chartData = {
     labels: chartLabels,
     datasets: [
       {
         label: 'Success',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.success || 0).reverse() || [],
+        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.success || 0) || [],
         borderColor: '#16a34a',
         backgroundColor: '#16a34a',
         tension: 0.3,
       },
       {
         label: 'Pending',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.pending || 0).reverse() || [],
+        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.pending || 0) || [],
         borderColor: '#f59e0b',
         backgroundColor: '#f59e0b',
         tension: 0.3,
       },
       {
         label: 'Failed',
-        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.failed || 0).reverse() || [],
+        data: rolling?.daily_reports?.map((r: any) => r.grand_totals?.failed || 0) || [],
         borderColor: '#dc2626',
         backgroundColor: '#dc2626',
         tension: 0.3,
@@ -263,13 +268,16 @@ export default function GeoAnalysisPage() {
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Daily Drilldown</h2>
             <div className="flex flex-wrap gap-2">
-              <input 
-                type="text" 
-                placeholder="Filter Date" 
-                value={filterDate} 
+              <select
+                value={filterDate}
                 onChange={e => setFilterDate(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              />
+                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+              >
+                <option value="">Filter Date (All)</option>
+                {availableDates.map(date => (
+                  <option key={date as string} value={date as string}>{date as string}</option>
+                ))}
+              </select>
               <input 
                 type="text" 
                 placeholder="Filter Deployment" 

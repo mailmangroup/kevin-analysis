@@ -270,15 +270,15 @@ export default function GeoAnalysisPage() {
 
         {/* Drilldown Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Daily Drilldown</h2>
-            <div className="flex flex-wrap gap-2">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900 whitespace-nowrap">Daily Drilldown</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full lg:w-auto lg:flex-1 lg:max-w-4xl lg:justify-end">
               <select
                 value={filterDate}
                 onChange={e => setFilterDate(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer"
               >
-                <option value="">Filter Date (All)</option>
+                <option value="">Date (All)</option>
                 {availableDates.map(date => (
                   <option key={date as string} value={date as string}>{date as string}</option>
                 ))}
@@ -286,9 +286,9 @@ export default function GeoAnalysisPage() {
               <select
                 value={filterDeployment}
                 onChange={e => setFilterDeployment(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer"
               >
-                <option value="">Filter Deployment (All)</option>
+                <option value="">Deployment (All)</option>
                 {availableDeployments.map(dep => (
                   <option key={dep as string} value={dep as string}>{dep as string}</option>
                 ))}
@@ -296,9 +296,9 @@ export default function GeoAnalysisPage() {
               <select
                 value={filterOrg}
                 onChange={e => setFilterOrg(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer"
               >
-                <option value="">Filter Org (All)</option>
+                <option value="">Org (All)</option>
                 {availableOrgs.map(org => (
                   <option key={org as string} value={org as string}>{org as string}</option>
                 ))}
@@ -306,9 +306,9 @@ export default function GeoAnalysisPage() {
               <select
                 value={filterProject}
                 onChange={e => setFilterProject(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer"
               >
-                <option value="">Filter Project (All)</option>
+                <option value="">Project (All)</option>
                 {availableProjects.map(proj => (
                   <option key={proj as string} value={proj as string}>{proj as string}</option>
                 ))}
@@ -316,9 +316,9 @@ export default function GeoAnalysisPage() {
               <select
                 value={filterPlatform}
                 onChange={e => setFilterPlatform(e.target.value)}
-                className="text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto bg-white text-slate-700"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white text-slate-700 shadow-sm transition-all hover:border-slate-300 cursor-pointer"
               >
-                <option value="">Filter Platform (All)</option>
+                <option value="">Platform (All)</option>
                 {availablePlatforms.map(plat => (
                   <option key={plat as string} value={plat as string}>{plat as string}</option>
                 ))}

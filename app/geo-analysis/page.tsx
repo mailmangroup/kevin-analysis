@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Navbar } from '@/components/Navbar'
 import useSWR from 'swr'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import {
   Chart as ChartJS,
@@ -16,6 +16,7 @@ import {
   Legend,
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 
 ChartJS.register(
   CategoryScale,
@@ -26,13 +27,6 @@ ChartJS.register(
   Tooltip,
   Legend
 )
-
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
 
 const computeStats = (rawStatuses: Record<string, number> = {}) => {
   const successKeys = ['parsed', 'reparsed']
@@ -73,7 +67,7 @@ export default function GeoAnalysisPage() {
   // Note: Expecting the backend at /phoenix/geo/reports to return { rolling, daily }
   const { data, error, isLoading } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/geo/reports` : null, 
-    fetcher
+    authenticatedFetcher
   )
 
   const { rolling, daily } = data || {}
@@ -271,7 +265,7 @@ export default function GeoAnalysisPage() {
       <div className="min-h-screen bg-mesh">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
-          <div className="text-red-500">Failed to load GEO data.</div>
+          <KawoConnectionError reason={isKawoAuthError(error) ? 'invalid' : 'failed'} />
         </main>
       </div>
     )

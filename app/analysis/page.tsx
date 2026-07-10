@@ -5,12 +5,13 @@ import { Navbar } from '@/components/Navbar'
 import { DateRangePicker } from '@/components/DateRangePicker'
 import { subDays, format, startOfMonth } from 'date-fns'
 import useSWR from 'swr'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { HeroKPIGrid } from '@/components/HeroKPIGrid'
 import { DashboardCharts } from '@/components/DashboardCharts'
 import { MetricModeToggle } from '@/components/MetricModeToggle'
 import { TopLists } from '@/components/TopLists'
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 import { Calendar, Users } from 'lucide-react'
 import { useLanguageStore } from '@/lib/store/language-store'
 
@@ -23,13 +24,6 @@ interface MetricData {
   content_generation_count?: number
   is_recorded?: boolean
 }
-
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
 
 export default function AnalysisPage() {
   const { profile } = useUserStore()
@@ -67,23 +61,24 @@ export default function AnalysisPage() {
   // Fetch current period metrics
   const { data: metrics = [], error: metricsError } = useSWR<MetricData[]>(
     apiUrl ? `${apiUrl}/phoenix/overview/metrics?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   // Fetch previous period metrics
   const { data: previousMetrics = [] } = useSWR<MetricData[]>(
     apiUrl ? `${apiUrl}/phoenix/overview/metrics?start_date=${prevStartDateStr}&end_date=${prevEndDateStr}` : null,
-    fetcher
+    authenticatedFetcher
   )
   
   // Fetch sub-category types (using the same days logic for now, or we might need to update that endpoint too)
   // For now, let's just pass 'days' equivalent
   const { data: types = [] } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/usage/types?days=${duration + 1}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const loading = !metrics && !metricsError
+  const connectionFailed = isKawoAuthError(metricsError)
 
   const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value
@@ -215,6 +210,8 @@ export default function AnalysisPage() {
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-card h-96 shimmer" />
           </div>
+        ) : connectionFailed || metricsError ? (
+          <KawoConnectionError reason={connectionFailed ? 'invalid' : 'failed'} />
         ) : (
           <>
             {/* Feature Usage Header & Metric Mode */}

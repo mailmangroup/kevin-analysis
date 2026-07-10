@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -44,19 +44,14 @@ export function TopLists({ days, startDate, endDate }: TopListsProps) {
   // Always append generation_type since 'all' is no longer an option
   queryParams += `&generation_type=${selectedType}`
 
-  const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-    if (!res.ok) throw new Error('API error')
-    return res.json()
-  })
-
   const { data: topBrands, isLoading: loadingBrands } = useSWR<TopItem[]>(
     apiUrl ? `${apiUrl}/phoenix/usage/brands?${queryParams}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const { data: topUsers, isLoading: loadingUsers } = useSWR<TopItem[]>(
     apiUrl ? `${apiUrl}/phoenix/usage/users?${queryParams}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const typeOptions = GENERATION_TYPES.map(t => ({ value: t.id, label: t.label }))

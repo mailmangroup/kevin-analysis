@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { Navbar } from '@/components/Navbar'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, fetchWithAuth, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useLanguageStore } from '@/lib/store/language-store'
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -56,13 +57,6 @@ interface LifecycleWeek {
   at_risk_users?: LifecycleUser[]
   churned_users?: LifecycleUser[]
 }
-
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
 
 // Simple Modal Component
 function UserListModal({ isOpen, onClose, title, users, t }: { isOpen: boolean; onClose: () => void; title: string; users: LifecycleUser[]; t: (key: string) => string }) {
@@ -221,18 +215,20 @@ export default function RetentionPage() {
   const qs = params.toString()
 
   const apiUrl = profile?.kawo_api_url
-  const { data: rawData = [], isLoading: cohortsLoading } = useSWR<RetentionRecord[]>(
+  const { data: rawData = [], error: cohortsError, isLoading: cohortsLoading } = useSWR<RetentionRecord[]>(
     apiUrl ? `${apiUrl}/phoenix/retention?${qs}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
-  const { data: lifecycleStats, isLoading: lifecycleLoading } = useSWR(
+  const { data: lifecycleStats, error: lifecycleError, isLoading: lifecycleLoading } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/retention/lifecycle?${qs}` : null,
-    fetcher
+    authenticatedFetcher
   )
   const lifecycleData = Array.isArray(lifecycleStats?.weekly_data) ? lifecycleStats.weekly_data : []
 
   const loading = cohortsLoading || lifecycleLoading
+  const connectionError = cohortsError || lifecycleError
+  const connectionFailed = isKawoAuthError(cohortsError) || isKawoAuthError(lifecycleError)
 
   // Process data for display (memoized)
   const data = useMemo(() => {
@@ -525,6 +521,10 @@ export default function RetentionPage() {
           <div className="overflow-x-auto">
           {loading ? (
             <div className="p-12 text-center text-slate-500 animate-pulse">Loading retention data...</div>
+          ) : connectionError ? (
+            <div className="p-6">
+              <KawoConnectionError reason={connectionFailed ? 'invalid' : 'failed'} />
+            </div>
           ) : (
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">

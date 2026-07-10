@@ -5,10 +5,11 @@ import useSWR from 'swr'
 import { Info } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import { TimePeriodToggle } from '@/components/TimePeriodToggle'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
 import { useLanguageStore } from '@/lib/store/language-store'
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -158,13 +159,6 @@ interface MonthlyCostSummary {
   total_tokens: number
 }
 
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
-
 const periodToDays: Record<Period, number> = {
   '7D': 7,
   '30D': 30,
@@ -241,17 +235,19 @@ export default function CostPage() {
   }, [fetchProfile])
 
   const apiUrl = profile?.kawo_api_url
-  const { data: dailyData = [], isLoading: dailyLoading } = useSWR<DailyCostSummary[]>(
+  const { data: dailyData = [], error: dailyError, isLoading: dailyLoading } = useSWR<DailyCostSummary[]>(
     apiUrl ? `${apiUrl}/phoenix/cost/daily?days=${days}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
-  const { data: monthlyData = [], isLoading: monthlyLoading } = useSWR<MonthlyCostSummary[]>(
+  const { data: monthlyData = [], error: monthlyError, isLoading: monthlyLoading } = useSWR<MonthlyCostSummary[]>(
     apiUrl ? `${apiUrl}/phoenix/cost/monthly` : null,
-    fetcher
+    authenticatedFetcher
   )
   
   const loading = dailyLoading || monthlyLoading
+  const connectionError = dailyError || monthlyError
+  const connectionFailed = isKawoAuthError(dailyError) || isKawoAuthError(monthlyError)
 
   const chartOptions = {
     responsive: true,
@@ -442,6 +438,8 @@ export default function CostPage() {
               </div>
             ))}
           </div>
+        ) : connectionError ? (
+          <KawoConnectionError reason={connectionFailed ? 'invalid' : 'failed'} />
         ) : (
           <div className="space-y-6">
             {/* 1. Daily Cost Chart */}

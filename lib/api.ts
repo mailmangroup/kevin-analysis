@@ -4,6 +4,26 @@ import { useUserStore } from '@/lib/store/user-store'
 // Check if we're in local development mode
 const isLocalDev = process.env.NEXT_PUBLIC_KAWO_TOKEN !== undefined
 
+export class KawoApiError extends Error {
+  status: number
+
+  constructor(status: number, message?: string) {
+    super(message || `API error: ${status}`)
+    this.name = 'KawoApiError'
+    this.status = status
+  }
+}
+
+export function isKawoAuthError(error: unknown): boolean {
+  if (error instanceof KawoApiError) {
+    return error.status === 401 || error.status === 403
+  }
+  if (error instanceof Error) {
+    return /API error: (401|403)\b/.test(error.message)
+  }
+  return false
+}
+
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   let kawoToken: string | undefined
 
@@ -34,6 +54,15 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     ...options,
     headers,
   })
+}
+
+/** SWR-friendly fetcher that throws KawoApiError with HTTP status. */
+export async function authenticatedFetcher(url: string) {
+  const res = await fetchWithAuth(url)
+  if (!res.ok) {
+    throw new KawoApiError(res.status)
+  }
+  return res.json()
 }
 
 // Helper function to get KAWO configuration

@@ -1,6 +1,7 @@
-"use client"
+'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStore } from '@/lib/store/user-store'
 import { Globe, CheckCircle, Loader2 } from 'lucide-react'
@@ -19,7 +20,7 @@ export function KawoTokenModal() {
 
   const testConnection = async () => {
     if (!token.trim()) {
-      setStatus({ ok: false, msg: 'Enter your token first.' })
+      setStatus({ ok: false, msg: 'Enter your staging token first.' })
       return
     }
     setTesting(true)
@@ -42,9 +43,9 @@ export function KawoTokenModal() {
         }
         throw new Error(errorData.error || errorData.message || res.statusText)
       }
-      setStatus({ ok: true, msg: 'Successfully connected to KAWO API.' })
+      setStatus({ ok: true, msg: 'Successfully connected to staging KAWO API.' })
     } catch (e: any) {
-      setStatus({ ok: false, msg: e?.message || 'Could not connect to KAWO. Check your credentials.' })
+      setStatus({ ok: false, msg: e?.message || 'Could not connect to staging KAWO. Use a staging user token.' })
     } finally {
       setTesting(false)
     }
@@ -52,7 +53,7 @@ export function KawoTokenModal() {
 
   const save = async () => {
     if (!token.trim()) {
-      setStatus({ ok: false, msg: 'Enter your token first.' })
+      setStatus({ ok: false, msg: 'Enter your staging token first.' })
       return
     }
     setSaving(true)
@@ -99,24 +100,31 @@ export function KawoTokenModal() {
       <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-slate-200">
         <h2 className="text-xl font-bold tracking-tight text-slate-900">Connect your KAWO account</h2>
         <p className="text-sm text-slate-500 mt-2">
-          Enter your KAWO user token to let Kevin Analysis access your data.
+          Enter your staging KAWO user token. This app only connects to staging-kevin.kawo.com.
         </p>
 
         <div className="mt-6 space-y-2">
           <label htmlFor="kawo_token" className="block text-sm font-medium text-slate-700">
-            KAWO User Token
+            Staging KAWO User Token
           </label>
           <input
             id="kawo_token"
             type="password"
             className={inputCls}
-            placeholder="Enter your user token"
+            placeholder="Paste your staging user token"
             value={token}
             onChange={(e) => {
               setToken(e.target.value)
               if (status) setStatus(null)
             }}
           />
+          <p className="text-xs text-slate-500">
+            You can also manage this later in{' '}
+            <Link href="/settings" className="font-medium text-primary-600 hover:text-primary-700">
+              Settings
+            </Link>
+            .
+          </p>
         </div>
 
         {status && (

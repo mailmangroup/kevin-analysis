@@ -40,7 +40,7 @@ export default function SettingsPage() {
 
   const testConnection = async () => {
     if (!token.trim()) {
-      setStatus({ ok: false, msg: 'Enter your token first.' })
+      setStatus({ ok: false, msg: 'Enter your staging token first.' })
       return
     }
     setTesting(true)
@@ -63,9 +63,9 @@ export default function SettingsPage() {
         }
         throw new Error(errorData.error || errorData.message || res.statusText)
       }
-      setStatus({ ok: true, msg: 'Successfully connected to KAWO API.' })
+      setStatus({ ok: true, msg: 'Successfully connected to staging KAWO API.' })
     } catch (e: any) {
-      setStatus({ ok: false, msg: e?.message || 'Could not connect to KAWO. Check your credentials.' })
+      setStatus({ ok: false, msg: e?.message || 'Could not connect to staging KAWO. Use a staging user token.' })
     } finally {
       setTesting(false)
     }
@@ -73,7 +73,7 @@ export default function SettingsPage() {
 
   const save = async () => {
     if (!token.trim()) {
-      setStatus({ ok: false, msg: 'Enter your token first.' })
+      setStatus({ ok: false, msg: 'Enter your staging token first.' })
       return
     }
     setSaving(true)
@@ -141,13 +141,13 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="kawo_token" className="block text-sm font-medium text-slate-700">
-                KAWO User Token
+                Staging KAWO User Token
               </label>
               <input
                 id="kawo_token"
                 type="password"
                 className={inputCls}
-                placeholder="Enter your user token"
+                placeholder="Paste your staging user token"
                 value={token}
                 onChange={(e) => {
                   setToken(e.target.value)
@@ -155,7 +155,8 @@ export default function SettingsPage() {
                 }}
               />
               <p className="text-xs text-slate-500">
-                Used to authenticate with the staging KAWO backend.
+                Must be a staging KAWO user token — this app only talks to staging-kevin.kawo.com.
+                If pages fail to load, update the token here and use Test Connection.
               </p>
             </div>
 

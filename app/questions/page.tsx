@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { DateRangePicker } from '@/components/DateRangePicker'
 import useSWR from 'swr'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useLanguageStore } from '@/lib/store/language-store'
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 import { subDays, format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChevronDown, ChevronRight } from 'lucide-react'
@@ -66,13 +67,6 @@ interface Stats {
   top_users: { user_email: string; count: number }[]
   sub_categories: { sub_category: string; count: number; percentage: number }[]
 }
-
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
 
 // Centralized color mapping for sub-categories - warm color palette
 const SUB_CATEGORY_COLORS: Record<string, { bg: string; border: string; solid: string }> = {
@@ -182,7 +176,7 @@ function FollowUpQuestions({ spanId, apiUrl }: { spanId: string; apiUrl: string 
   const [showFollowUps, setShowFollowUps] = useState(false)
   const { data: followUps, error } = useSWR<Question[]>(
     showFollowUps ? `${apiUrl}/phoenix/questions/${spanId}/followups` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   if (!showFollowUps) {
@@ -292,7 +286,7 @@ function BrandQuestionGroup({
   const shouldFetch = isOpen
   const { data: page, error: pageError, isLoading } = useSWR<Question[]>(
     shouldFetch ? `${apiUrl}/phoenix/questions?${params.toString()}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   useEffect(() => {
@@ -554,7 +548,7 @@ export default function QuestionsPage() {
   const apiUrl = profile?.kawo_api_url
   const { data: stats, error: statsError } = useSWR<Stats>(
     apiUrl ? `${apiUrl}/phoenix/questions/stats?${queryString}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const statsLoading = !stats && !statsError
@@ -709,14 +703,10 @@ export default function QuestionsPage() {
 
         {/* Stats Section */}
         {statsError && (
-          <div className="mb-8 bg-rose-50 border border-rose-200 rounded-xl p-4">
-            <p className="text-rose-800 text-sm flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Failed to load statistics. The API returned an error.
-            </p>
-          </div>
+          <KawoConnectionError
+            variant="banner"
+            reason={isKawoAuthError(statsError) ? 'invalid' : 'failed'}
+          />
         )}
 
         {statsLoading && (

@@ -7,18 +7,12 @@ import { Navbar } from '@/components/Navbar'
 import { DashboardCharts } from '@/components/DashboardCharts'
 import { HeroKPIGrid } from '@/components/HeroKPIGrid'
 import { TimePeriodToggle } from '@/components/TimePeriodToggle'
-import { fetchWithAuth } from '@/lib/api'
+import { authenticatedFetcher, isKawoAuthError } from '@/lib/api'
 import { useUserStore } from '@/lib/store/user-store'
 import { useTimePeriodStore, Period } from '@/lib/store/time-period-store'
 import { Calendar } from 'lucide-react'
 import { useLanguageStore } from '@/lib/store/language-store'
-
-const fetcher = (url: string) => fetchWithAuth(url).then(res => {
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-  return res.json()
-})
+import { KawoConnectionError } from '@/components/KawoConnectionError'
 
 const periodToDays: Record<Period, number> = {
   '7D': 7,
@@ -47,11 +41,11 @@ export default function Home() {
   const prevStartDate = format(subDays(yesterday, days * 2 - 1), 'yyyy-MM-dd')
 
   // Fetch current period metrics
-  const { data: metrics = [] } = useSWR(
+  const { data: metrics = [], error: metricsError } = useSWR(
     apiUrl
       ? `${apiUrl}/phoenix/overview/metrics?start_date=${startDate}&end_date=${endDate}`
       : null,
-    fetcher
+    authenticatedFetcher
   )
 
   // Fetch previous period metrics for comparison
@@ -59,20 +53,21 @@ export default function Home() {
     apiUrl
       ? `${apiUrl}/phoenix/overview/metrics?start_date=${prevStartDate}&end_date=${prevEndDate}`
       : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const { data: types = [] } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/usage/types?days=${days}` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const { data: costs = [] } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/cost/monthly` : null,
-    fetcher
+    authenticatedFetcher
   )
 
   const loading = !apiUrl
+  const connectionFailed = isKawoAuthError(metricsError)
 
   // Calculate latest date from metrics (fallback to yesterday)
   const latestDate = metrics && metrics.length > 0
@@ -131,6 +126,8 @@ export default function Home() {
               <div className="h-72 shimmer rounded-xl" />
             </div>
           </div>
+        ) : connectionFailed || metricsError ? (
+          <KawoConnectionError reason={connectionFailed ? 'invalid' : 'failed'} />
         ) : (
           <>
             {/* Hero KPI Cards */}

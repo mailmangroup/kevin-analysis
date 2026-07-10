@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import { format, subDays } from 'date-fns'
 import { Navbar } from '@/components/Navbar'
 import { DashboardCharts } from '@/components/DashboardCharts'
 import { HeroKPIGrid } from '@/components/HeroKPIGrid'
@@ -38,20 +39,28 @@ export default function Home() {
   const apiUrl = profile?.kawo_api_url
   const days = periodToDays[period]
 
+  // Data is always available through yesterday — never include today
+  const yesterday = subDays(new Date(), 1)
+  const endDate = format(yesterday, 'yyyy-MM-dd')
+  const startDate = format(subDays(yesterday, days - 1), 'yyyy-MM-dd')
+  const prevEndDate = format(subDays(yesterday, days), 'yyyy-MM-dd')
+  const prevStartDate = format(subDays(yesterday, days * 2 - 1), 'yyyy-MM-dd')
+
   // Fetch current period metrics
   const { data: metrics = [] } = useSWR(
-    apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=${days}` : null,
+    apiUrl
+      ? `${apiUrl}/phoenix/overview/metrics?start_date=${startDate}&end_date=${endDate}`
+      : null,
     fetcher
   )
 
   // Fetch previous period metrics for comparison
-  const { data: previousMetrics = [] } = useSWR(
-    apiUrl ? `${apiUrl}/phoenix/overview/metrics?days=${days * 2}` : null,
+  const { data: previousPeriodMetrics = [] } = useSWR(
+    apiUrl
+      ? `${apiUrl}/phoenix/overview/metrics?start_date=${prevStartDate}&end_date=${prevEndDate}`
+      : null,
     fetcher
   )
-
-  // Get only the previous period data (older half)
-  const previousPeriodMetrics = previousMetrics.slice(0, days)
 
   const { data: types = [] } = useSWR(
     apiUrl ? `${apiUrl}/phoenix/usage/types?days=${days}` : null,
@@ -65,10 +74,10 @@ export default function Home() {
 
   const loading = !apiUrl
 
-  // Calculate latest date from metrics
+  // Calculate latest date from metrics (fallback to yesterday)
   const latestDate = metrics && metrics.length > 0
     ? metrics.reduce((max: string, curr: any) => (curr.date_beijing > max ? curr.date_beijing : max), metrics[0].date_beijing)
-    : new Date().toISOString().split('T')[0]
+    : endDate
 
   return (
     <div className="min-h-screen bg-mesh">

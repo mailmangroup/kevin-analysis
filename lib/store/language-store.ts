@@ -145,6 +145,7 @@ export const translations = {
 
     // Common
     'common.loading': 'Loading...',
+    'common.archived': 'Archived',
   },
   zh: {
     // Navigation
@@ -281,6 +282,7 @@ export const translations = {
 
     // Common
     'common.loading': '加载中...',
+    'common.archived': '已归档',
   }
 }
 

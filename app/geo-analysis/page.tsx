@@ -17,6 +17,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { KawoConnectionError } from '@/components/KawoConnectionError'
+import { Archive } from 'lucide-react'
 
 ChartJS.register(
   CategoryScale,
@@ -52,6 +53,24 @@ const computeStats = (rawStatuses: Record<string, number> = {}) => {
 }
 
 type DrilldownFilterKey = 'date' | 'deployment' | 'org' | 'project' | 'platform'
+
+function ArchivedNotice() {
+  return (
+    <div
+      role="status"
+      className="mb-8 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-slate-700"
+    >
+      <Archive className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
+      <div>
+        <p className="font-semibold text-slate-900">Archived — no longer maintained</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          This dashboard is kept for historical reference. Its data and functionality may be outdated,
+          incomplete, or stop working.
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function GeoAnalysisPage() {
   const { profile } = useUserStore()
@@ -247,6 +266,7 @@ export default function GeoAnalysisPage() {
       <div className="min-h-screen bg-mesh">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <ArchivedNotice />
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-slate-200 rounded w-1/4 mb-10"></div>
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
@@ -265,6 +285,7 @@ export default function GeoAnalysisPage() {
       <div className="min-h-screen bg-mesh">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+          <ArchivedNotice />
           <KawoConnectionError reason={isKawoAuthError(error) ? 'invalid' : 'failed'} />
         </main>
       </div>
@@ -283,6 +304,7 @@ export default function GeoAnalysisPage() {
     <div className="min-h-screen bg-mesh">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-24 pb-16">
+        <ArchivedNotice />
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
             GEO Run Payload <span className="text-gradient">Dashboard</span>

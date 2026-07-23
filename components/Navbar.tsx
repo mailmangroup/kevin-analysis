@@ -13,7 +13,7 @@ const navItems = [
     icon: BarChart3,
     subItems: [
       { href: '/analysis', labelKey: 'nav.kevinAnalysis' },
-      { href: '/geo-analysis', labelKey: 'nav.geoAnalysis' },
+      { href: '/geo-analysis', labelKey: 'nav.geoAnalysis', statusKey: 'common.archived' },
     ]
   },
   { href: '/questions', labelKey: 'nav.questions', icon: HelpCircle },
@@ -90,7 +90,14 @@ export function Navbar() {
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                             }`}
                           >
-                            {t(sub.labelKey)}
+                            <span className="flex items-center justify-between gap-3">
+                              <span>{t(sub.labelKey)}</span>
+                              {sub.statusKey && (
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                  {t(sub.statusKey)}
+                                </span>
+                              )}
+                            </span>
                           </Link>
                         ))}
                       </div>
@@ -149,7 +156,8 @@ export function Navbar() {
               return item.subItems.map(sub => ({
                 href: sub.href,
                 labelKey: sub.labelKey,
-                icon: item.icon
+                icon: item.icon,
+                statusKey: sub.statusKey,
               }))
             }
             return [item as any]
@@ -171,6 +179,11 @@ export function Navbar() {
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : ''}`} />
                 <span className="truncate w-full text-center px-1">{t(item.labelKey)}</span>
+                {item.statusKey && (
+                  <span className="text-[8px] font-semibold uppercase leading-none tracking-wide text-slate-400">
+                    {t(item.statusKey)}
+                  </span>
+                )}
               </Link>
             )
           })}

@@ -34,7 +34,6 @@ export const v0_8_9: Release = {
         'Content analysis can now resume from schema, tagging, personas, or insights using artifacts from a prior run — useful for iterating without starting over.',
       type: 'feature',
       scope: 'Analysis Service',
-      frontendEnabled: false,
     },
     {
       title: 'Richer tag and competitor analysis',
